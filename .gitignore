@@ -1,0 +1,14 @@
+build/_output/*
+vendor
+**/_output
+*.DS_Store
+coverage.txt
+*.coverprofile
+.idea
+.vscode
+*.o
+*.a
+.project
+.cproject
+.eclipse
+.settings/
