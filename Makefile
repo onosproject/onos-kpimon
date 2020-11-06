@@ -1,6 +1,6 @@
 export CGO_ENABLED=1
 export GO111MODULE=on
-export GOPRIVATE="github.com/onosproject/*"
+export GOPRIVATE="github.com/onosproject/onos-e2t"
 
 .PHONY: build
 

@@ -4,7 +4,10 @@
 
 package manager
 
-import "github.com/onosproject/onos-lib-go/pkg/logging"
+import (
+	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
+)
 
 var log = logging.GetLogger("manager")
 
@@ -19,14 +22,24 @@ type Config struct {
 // NewManager creates a new manager
 func NewManager(config Config) *Manager {
 	log.Info("Creating Manager")
+
+	e2tSession, err := ricapie2.NewSession(config.E2tEndpoint)
+
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
 	return &Manager{
 		Config: config,
+		E2tSession: e2tSession,
 	}
 }
 
 // Manager is a manager for the KPIMON service
 type Manager struct {
 	Config Config
+	E2tSession	*ricapie2.RicAPIE2Session
 }
 
 // Run starts the manager and the associated services
@@ -39,7 +52,7 @@ func (m *Manager) Run() {
 
 // Start starts the manager
 func (m *Manager) Start() error {
-	// TODO: run SB
+	go m.E2tSession.Run()
 	return nil
 }
 
