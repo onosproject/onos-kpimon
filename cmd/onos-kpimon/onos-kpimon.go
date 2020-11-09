@@ -9,15 +9,12 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/manager"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 var log = logging.GetLogger("main")
-
-const probeFile = "/tmp/healthy"
 
 func main() {
 	caPath := flag.String("caPath", "", "path to CA certificate")
@@ -42,11 +39,6 @@ func main() {
 
 	mgr := manager.NewManager(cfg)
 	mgr.Run()
-
-	if err := ioutil.WriteFile(probeFile, []byte("onos-kpimon"), 0644); err != nil {
-		log.Fatalf("Unable to write probe file %s", probeFile)
-	}
-	defer os.Remove(probeFile)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
