@@ -31,15 +31,15 @@ func NewManager(config Config) *Manager {
 	}
 
 	return &Manager{
-		Config: config,
+		Config:     config,
 		E2tSession: e2tSession,
 	}
 }
 
 // Manager is a manager for the KPIMON service
 type Manager struct {
-	Config Config
-	E2tSession	*ricapie2.RicAPIE2Session
+	Config     Config
+	E2tSession *ricapie2.RicAPIE2Session
 }
 
 // Run starts the manager and the associated services

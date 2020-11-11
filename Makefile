@@ -1,6 +1,5 @@
 export CGO_ENABLED=1
 export GO111MODULE=on
-export GOPRIVATE="github.com/onosproject/onos-e2t"
 
 .PHONY: build
 
@@ -11,7 +10,7 @@ BUF_VERSION := 0.27.1
 
 build: # @HELP build the Go binaries and run all validations (default)
 build:
-	go build -o build/_output/onos-kpimon ./cmd/onos-kpimon
+	GOPRIVATE="github.com/onosproject/*" go build -o build/_output/onos-kpimon ./cmd/onos-kpimon
 
 test: # @HELP run the unit tests and source code validation
 test: build deps linters license_check
@@ -23,7 +22,7 @@ coverage: build deps linters license_check
 	./build/bin/coveralls-coverage
 
 deps: # @HELP ensure that the required dependencies are in place
-	go build -v ./...
+	GOPRIVATE="github.com/onosproject/*" go build -v ./...
 	bash -c "diff -u <(echo -n) <(git diff go.mod)"
 	bash -c "diff -u <(echo -n) <(git diff go.sum)"
 
