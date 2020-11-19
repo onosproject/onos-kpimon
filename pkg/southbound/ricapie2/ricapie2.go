@@ -6,12 +6,13 @@ package ricapie2
 
 import (
 	"context"
+	"io"
+	"time"
+
 	ricapie2 "github.com/onosproject/onos-e2t/api/ricapi/e2/v1beta1"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/southbound"
 	"google.golang.org/grpc"
-	"io"
-	"time"
 )
 
 var log = logging.GetLogger("sb-ricapie2")
@@ -72,7 +73,7 @@ func (s *RicAPIE2Session) manageConnection(conn *grpc.ClientConn) {
 
 	defer conn.Close()
 
-	s.streamHandler()
+	_ = s.streamHandler()
 }
 
 func (s *RicAPIE2Session) streamHandler() error {
@@ -83,8 +84,8 @@ func (s *RicAPIE2Session) streamHandler() error {
 		return err
 	}
 
-	s.subscribeE2T(stream)
-	s.watchE2IndicationMsgs(stream)
+	_ = s.subscribeE2T(stream)
+	_ = s.watchE2IndicationMsgs(stream)
 
 	return nil
 }
@@ -145,6 +146,7 @@ func (s *RicAPIE2Session) watchE2IndicationMsgs(stream ricapie2.E2TService_Strea
 			log.Error(err)
 			continue
 		} else {
+			log.Info("TODO: indication message dispatcher/handler should be called here")
 			// TODO: indication message dispatcher/handler should be called here
 		}
 	}

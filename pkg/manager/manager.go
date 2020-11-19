@@ -7,6 +7,7 @@ package manager
 import (
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/onos-lib-go/pkg/northbound"
 )
 
 var log = logging.GetLogger("manager")
@@ -17,6 +18,7 @@ type Config struct {
 	KeyPath     string
 	CertPath    string
 	E2tEndpoint string
+	GRPCPort    int
 }
 
 // NewManager creates a new manager
@@ -52,6 +54,12 @@ func (m *Manager) Run() {
 
 // Start starts the manager
 func (m *Manager) Start() error {
+
+	err := m.startNorthboundServer()
+	if err != nil {
+		return err
+	}
+
 	go m.E2tSession.Run()
 	return nil
 }
@@ -59,4 +67,27 @@ func (m *Manager) Start() error {
 // Close kills the channels and manager related objects
 func (m *Manager) Close() {
 	log.Info("Closing Manager")
+}
+
+func (m *Manager) startNorthboundServer() error {
+	s := northbound.NewServer(northbound.NewServerCfg(
+		m.Config.CAPath,
+		m.Config.KeyPath,
+		m.Config.CertPath,
+		int16(m.Config.GRPCPort),
+		true,
+		northbound.SecurityConfig{}))
+
+	// TODO add services including gnmi service
+	doneCh := make(chan error)
+	go func() {
+		err := s.Serve(func(started string) {
+			log.Info("Started NBI on ", started)
+			close(doneCh)
+		})
+		if err != nil {
+			doneCh <- err
+		}
+	}()
+	return <-doneCh
 }
