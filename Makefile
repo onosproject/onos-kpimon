@@ -49,12 +49,10 @@ protos:
 		onosproject/protoc-go:${ONOS_PROTOC_VERSION}
 
 onos-kpimon-base-docker: # @HELP build onos-kpimon base Docker image
-	@go mod vendor
 	docker build . -f build/base/Dockerfile \
 		--build-arg ONOS_BUILD_VERSION=${ONOS_BUILD_VERSION} \
 		--build-arg ONOS_MAKE_TARGET=build \
 		-t onosproject/onos-kpimon-base:${ONOS_KPIMON_VERSION}
-	@rm -rf vendor
 
 onos-kpimon-docker: # @HELP build onos-kpimon Docker image
 onos-kpimon-docker: onos-kpimon-base-docker

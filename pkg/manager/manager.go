@@ -8,6 +8,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi"
 )
 
 var log = logging.GetLogger("manager")
@@ -79,6 +80,11 @@ func (m *Manager) startNorthboundServer() error {
 		northbound.SecurityConfig{}))
 
 	// TODO add services including gnmi service
+	s.AddService(gnmi.NewService(gnmi.ModelInfo{
+		ModelType: gnmi.RIC,
+		Version:   "1.0.0",
+	}))
+
 	doneCh := make(chan error)
 	go func() {
 		err := s.Serve(func(started string) {
