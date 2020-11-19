@@ -1,5 +1,4 @@
 build/_output/*
-vendor
 **/_output
 *.DS_Store
 coverage.txt
