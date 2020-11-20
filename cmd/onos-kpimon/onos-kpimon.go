@@ -6,12 +6,10 @@ package main
 
 import (
 	"flag"
+
 	"github.com/onosproject/onos-kpimon/pkg/manager"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 var log = logging.GetLogger("main")
@@ -22,6 +20,8 @@ func main() {
 	certPath := flag.String("certPath", "", "path to client certificate")
 	e2tEndpoint := flag.String("e2tEndpoint", "onos-e2t:5150", "E2T service endpoint")
 
+	ready := make(chan bool)
+
 	flag.Parse()
 
 	_, err := certs.HandleCertPaths(*caPath, *keyPath, *certPath, true)
@@ -29,18 +29,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Info("Starting onos-e2t")
+	log.Info("Starting onos-kpimon")
 	cfg := manager.Config{
 		CAPath:      *caPath,
 		KeyPath:     *keyPath,
 		CertPath:    *certPath,
 		E2tEndpoint: *e2tEndpoint,
+		GRPCPort:    5150,
 	}
 
 	mgr := manager.NewManager(cfg)
 	mgr.Run()
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-	<-sigCh
+	<-ready
 }
