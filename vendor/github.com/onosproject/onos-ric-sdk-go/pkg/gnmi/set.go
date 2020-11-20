@@ -175,7 +175,6 @@ func (s *Server) doReplaceOrUpdate(jsonTree map[string]interface{}, op pb.Update
 
 // Set implements the Set RPC in gNMI spec.
 func (s *Server) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, error) {
-	fmt.Println("Test")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
