@@ -17,22 +17,22 @@ import (
 
 var log = logging.GetLogger("sb-ricapie2")
 
-// RicAPIE2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
-type RicAPIE2Session struct {
+// E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
+type E2Session struct {
 	E2TEndpoint string
 	E2TClient   ricapie2.E2TServiceClient
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string) (*RicAPIE2Session, error) {
-	log.Info("Creating RicAPIE2Session")
-	return &RicAPIE2Session{
+func NewSession(e2tEndpoint string) (*E2Session, error) {
+	log.Info("Creating E2Session")
+	return &E2Session{
 		E2TEndpoint: e2tEndpoint,
 	}, nil
 }
 
 // Run starts the southbound control loop for handover.
-func (s *RicAPIE2Session) Run() {
+func (s *E2Session) Run() {
 	log.Info("Started KPIMON Southbound session")
 	go s.manageConnections()
 	for {
@@ -41,7 +41,7 @@ func (s *RicAPIE2Session) Run() {
 }
 
 // manageConnections handles connections between ONOS-KPIMON and ONOS-E2T.
-func (s *RicAPIE2Session) manageConnections() {
+func (s *E2Session) manageConnections() {
 	log.Infof("Connecting to ONOS-E2T...%s", s.E2TEndpoint)
 
 	for {
@@ -63,7 +63,7 @@ func (s *RicAPIE2Session) manageConnections() {
 }
 
 // manageConnection is responsible for managing a single connection between HO App and ONOS RAN subsystem.
-func (s *RicAPIE2Session) manageConnection(conn *grpc.ClientConn) {
+func (s *E2Session) manageConnection(conn *grpc.ClientConn) {
 
 	s.E2TClient = ricapie2.NewE2TServiceClient(conn)
 	if s.E2TClient == nil {
@@ -76,7 +76,7 @@ func (s *RicAPIE2Session) manageConnection(conn *grpc.ClientConn) {
 	_ = s.streamHandler()
 }
 
-func (s *RicAPIE2Session) streamHandler() error {
+func (s *E2Session) streamHandler() error {
 	log.Info("Start ONOS-KPIMON App registration to ONOS-E2T for subscription\n")
 	stream, err := s.E2TClient.Stream(context.Background())
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *RicAPIE2Session) streamHandler() error {
 	return nil
 }
 
-func (s *RicAPIE2Session) subscribeE2T(stream ricapie2.E2TService_StreamClient) error {
+func (s *E2Session) subscribeE2T(stream ricapie2.E2TService_StreamClient) error {
 	// make subscription request message
 	reqMsg := ricapie2.StreamRequest{
 		AppID:      "ONOS-KPIMON",
@@ -128,7 +128,7 @@ func (s *RicAPIE2Session) subscribeE2T(stream ricapie2.E2TService_StreamClient) 
 	}
 }
 
-func (s *RicAPIE2Session) watchE2IndicationMsgs(stream ricapie2.E2TService_StreamClient) error {
+func (s *E2Session) watchE2IndicationMsgs(stream ricapie2.E2TService_StreamClient) error {
 	ctx := stream.Context()
 	for {
 		select {
