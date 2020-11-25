@@ -16,6 +16,7 @@ type KpiMonCtrl struct {
 	IndChan chan indication.Indication
 }
 
+// NewKpiMonController creates a new KpiMonController
 func NewKpiMonController(indChan chan indication.Indication) *KpiMonCtrl {
 	log.Info("Start ONOS-KPIMON Application Controller")
 	return &KpiMonCtrl{

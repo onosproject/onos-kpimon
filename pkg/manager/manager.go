@@ -56,7 +56,7 @@ type Manager struct {
 // SBSessions is a set of Southbound sessions
 type SBSessions struct {
 	E2Session    *ricapie2.E2Session
-	AdminSession *admin.AdminSession
+	AdminSession *admin.E2AdminSession
 }
 
 // Channels is a set of channels
@@ -64,6 +64,7 @@ type Channels struct {
 	IndCh chan indication.Indication
 }
 
+// Controllers is a set of controllers
 type Controllers struct {
 	KpiMonCtrl *controller.KpiMonCtrl
 }

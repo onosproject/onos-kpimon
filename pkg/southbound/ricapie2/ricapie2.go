@@ -38,13 +38,13 @@ func NewSession(e2tEndpoint string, e2subEndpoint string) *E2Session {
 }
 
 // Run starts the southbound to watch indication messages
-func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.AdminSession) {
+func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
 	log.Info("Started KPIMON Southbound session")
 	s.manageConnections(indChan, adminSession)
 }
 
 // manageConnections handles connections between ONOS-KPIMON and ONOS-E2T/E2Sub.
-func (s *E2Session) manageConnections(indChan chan indication.Indication, adminSession *admin.AdminSession) {
+func (s *E2Session) manageConnections(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
 	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
 	for {
 		nodeIDs, err := adminSession.GetListE2NodeIDs()
@@ -129,10 +129,8 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 		return err
 	}
 
-	select {
-	case indicationMsg := <-ch:
-		log.Debugf("%s message arrives", indicationMsg.EncodingType.String())
-	}
+	subRespMsg := <-ch
+	log.Debugf("%s message arrives", subRespMsg.EncodingType.String())
 
 	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
 	for indMsg := range ch {

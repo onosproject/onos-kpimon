@@ -16,21 +16,21 @@ import (
 
 var log = logging.GetLogger("sb-admin")
 
-// AdminSession is responsibnle for mapping connections to and interactions with the northbound admin API of ONOS-E2T
-type AdminSession struct {
+// E2AdminSession is responsible for mapping connections to and interactions with the northbound admin API of ONOS-E2T
+type E2AdminSession struct {
 	E2TEndpoint string
 }
 
 // NewSession creates a new admin southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string) *AdminSession {
+func NewSession(e2tEndpoint string) *E2AdminSession {
 	log.Info("Creating RicAPIAdminSession")
-	return &AdminSession{
+	return &E2AdminSession{
 		E2TEndpoint: e2tEndpoint,
 	}
 }
 
 // GetListE2NodeIDs returns the list of E2NodeIDs which are connected to ONOS-RIC
-func (s *AdminSession) GetListE2NodeIDs() ([]string, error) {
+func (s *E2AdminSession) GetListE2NodeIDs() ([]string, error) {
 	var nodeIDs []string
 
 	adminClient, err := s.connectionHandler()
@@ -59,7 +59,7 @@ func (s *AdminSession) GetListE2NodeIDs() ([]string, error) {
 	return nodeIDs, nil
 }
 
-func (s *AdminSession) connectionHandler() (admin.E2TAdminServiceClient, error) {
+func (s *E2AdminSession) connectionHandler() (admin.E2TAdminServiceClient, error) {
 	log.Infof("Connecting to ONOS-E2T ... %S", s.E2TEndpoint)
 
 	opts := []grpc.DialOption{
