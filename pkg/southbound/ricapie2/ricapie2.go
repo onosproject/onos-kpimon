@@ -6,148 +6,136 @@ package ricapie2
 
 import (
 	"context"
-	"io"
-	"time"
-
-	ricapie2 "github.com/onosproject/onos-e2t/api/ricapi/e2/v1beta1"
+	"github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2apies"
+	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder"
+	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
+	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/onos-lib-go/pkg/southbound"
-	"google.golang.org/grpc"
+	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/encoding"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/node"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
+	"strconv"
+	"strings"
 )
 
 var log = logging.GetLogger("sb-ricapie2")
 
 // E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
 type E2Session struct {
-	E2TEndpoint string
-	E2TClient   ricapie2.E2TServiceClient
+	E2SubEndpoint string
+	E2TEndpoint   string
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string) (*E2Session, error) {
-	log.Info("Creating E2Session")
+func NewSession(e2tEndpoint string, e2subEndpoint string) *E2Session {
+	log.Info("Creating RicAPIE2Session")
 	return &E2Session{
-		E2TEndpoint: e2tEndpoint,
-	}, nil
+		E2SubEndpoint: e2subEndpoint,
+		E2TEndpoint:   e2tEndpoint,
+	}
 }
 
-// Run starts the southbound control loop for handover.
-func (s *E2Session) Run() {
+// Run starts the southbound to watch indication messages
+func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
 	log.Info("Started KPIMON Southbound session")
-	go s.manageConnections()
-	for {
-		time.Sleep(100 * time.Second)
-	}
+	s.manageConnections(indChan, adminSession)
 }
 
-// manageConnections handles connections between ONOS-KPIMON and ONOS-E2T.
-func (s *E2Session) manageConnections() {
-	log.Infof("Connecting to ONOS-E2T...%s", s.E2TEndpoint)
-
+// manageConnections handles connections between ONOS-KPIMON and ONOS-E2T/E2Sub.
+func (s *E2Session) manageConnections(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
+	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
 	for {
-		// Attempt to create connection to the RIC
-		opts := []grpc.DialOption{
-			grpc.WithStreamInterceptor(southbound.RetryingStreamClientInterceptor(100 * time.Millisecond)),
-		}
-		conn, err := southbound.Connect(context.Background(), s.E2TEndpoint, "", "", opts...)
+		nodeIDs, err := adminSession.GetListE2NodeIDs()
 		if err != nil {
-			log.Errorf("Failed to connect: %s", err)
-			continue
+			log.Errorf("Cannot get NodeIDs through Admin API")
 		}
-		log.Infof("Connected to %s", s.E2TEndpoint)
-		// If successful, manage this connection and don't return until it is
-		// no longer valid and all related resources have been properly cleaned-up.
-		s.manageConnection(conn)
-		time.Sleep(100 * time.Millisecond) // need to be in 10ms - 100ms
+		s.manageConnection(indChan, nodeIDs)
+
 	}
 }
 
-// manageConnection is responsible for managing a single connection between HO App and ONOS RAN subsystem.
-func (s *E2Session) manageConnection(conn *grpc.ClientConn) {
-
-	s.E2TClient = ricapie2.NewE2TServiceClient(conn)
-	if s.E2TClient == nil {
-		log.Error("Unable to get gRPC NewE2TServiceClient")
-		return
-	}
-
-	defer conn.Close()
-
-	_ = s.streamHandler()
-}
-
-func (s *E2Session) streamHandler() error {
-	log.Info("Start ONOS-KPIMON App registration to ONOS-E2T for subscription\n")
-	stream, err := s.E2TClient.Stream(context.Background())
+func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs []string) {
+	err := s.subscribeE2T(indChan, nodeIDs)
 	if err != nil {
-		log.Errorf("Error on opening App stream connection %v", err)
+		log.Errorf("Error happens when subscription %s", err)
+	}
+}
+
+func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subscription, error) {
+	ricActionsToBeSetup := make(map[types.RicActionID]types.RicActionDef)
+	ricActionsToBeSetup[100] = types.RicActionDef{
+		RicActionID:         100,
+		RicActionType:       e2apies.RicactionType_RICACTION_TYPE_REPORT,
+		RicSubsequentAction: e2apies.RicsubsequentActionType_RICSUBSEQUENT_ACTION_TYPE_CONTINUE,
+		Ricttw:              e2apies.RictimeToWait_RICTIME_TO_WAIT_ZERO,
+		RicActionDefinition: []byte{0x11, 0x22},
+	}
+
+	E2apPdu, err := pdubuilder.CreateRicSubscriptionRequestE2apPdu(types.RicRequest{RequestorID: 0, InstanceID: 0},
+		0, nil, ricActionsToBeSetup)
+
+	if err != nil {
+		return subscription.Subscription{}, err
+	}
+
+	subReq := subscription.Subscription{
+		EncodingType: encoding.PROTO,
+		NodeID:       node.ID(nodeID),
+		Payload: subscription.Payload{
+			Value: E2apPdu,
+		},
+	}
+
+	return subReq, nil
+}
+
+func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []string) error {
+	e2SubHost := strings.Split(s.E2SubEndpoint, ":")[0]
+	e2SubPort, err := strconv.Atoi(strings.Split(s.E2SubEndpoint, ":")[1])
+	if err != nil {
+		log.Error("onos-e2sub's port information or endpoint information is wrong.")
 		return err
 	}
 
-	_ = s.subscribeE2T(stream)
-	_ = s.watchE2IndicationMsgs(stream)
+	clientConfig := e2client.Config{
+		AppID: "onos-kpimon",
+		SubscriptionService: e2client.ServiceConfig{
+			Host: e2SubHost,
+			Port: e2SubPort,
+		},
+	}
+
+	client, err := e2client.NewClient(clientConfig)
+	if err != nil {
+		log.Error("Can't open E2Client.")
+		return err
+	}
+
+	ch := make(chan indication.Indication)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	subReq, err := s.createSubscriptionRequest(nodeIDs[0])
+	if err != nil {
+		log.Error("Can't create SubsdcriptionRequest message")
+		return err
+	}
+
+	err = client.Subscribe(ctx, subReq, ch)
+	if err != nil {
+		log.Error("Can't send SubscriptionRequest message")
+		return err
+	}
+
+	subRespMsg := <-ch
+	log.Debugf("%s message arrives", subRespMsg.EncodingType.String())
+
+	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
+	for indMsg := range ch {
+		indChan <- indMsg
+	}
 
 	return nil
-}
-
-func (s *E2Session) subscribeE2T(stream ricapie2.E2TService_StreamClient) error {
-	// make subscription request message
-	reqMsg := ricapie2.StreamRequest{
-		AppID:      "ONOS-KPIMON",
-		InstanceID: "1",
-	}
-
-	log.Info("Sent ONOS-KPIMON App stream request message to ONOS-E2T for the subscription\n")
-	err := stream.Send(&reqMsg)
-	if err != nil {
-		return err
-	}
-
-	log.Info("Waiting until stream response message arrives from ONOS-E2T")
-	ctx := stream.Context()
-	for {
-		select {
-		case <-ctx.Done():
-			log.Error(ctx.Err())
-			return ctx.Err()
-		default:
-		}
-
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			log.Error("End of file error", err, resp)
-			return nil
-		} else if err != nil {
-			log.Error(err)
-			continue
-		} else {
-			log.Infof("Received ONOS-KPIMON App registration response message from ONOS-E2T"+
-				"(header - type:%s,smID:%s,status:%s; body - payload:%s\n", resp.Header.EncodingType.String(),
-				resp.Header.ServiceModelInfo.ServiceModelId, resp.Header.ResponseStatus, resp.Payload)
-		}
-	}
-}
-
-func (s *E2Session) watchE2IndicationMsgs(stream ricapie2.E2TService_StreamClient) error {
-	ctx := stream.Context()
-	for {
-		select {
-		case <-ctx.Done():
-			log.Error(ctx.Err())
-			return ctx.Err()
-		default:
-		}
-
-		resp, err := stream.Recv()
-		if err == io.EOF {
-			log.Error("End of file error", err, resp)
-			return nil
-		} else if err != nil {
-			log.Error(err)
-			continue
-		} else {
-			log.Info("TODO: indication message dispatcher/handler should be called here")
-			// TODO: indication message dispatcher/handler should be called here
-		}
-	}
 }

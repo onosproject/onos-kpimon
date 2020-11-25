@@ -35,6 +35,7 @@ message StreamRequest {
     string app_id = 1 [(gogoproto.casttype) = "AppID", (gogoproto.customname) = "AppID"];
     string instance_id = 2 [(gogoproto.casttype) = "InstanceID", (gogoproto.customname) = "InstanceID"];
     string subscription_id = 3 [(gogoproto.casttype) = "SubscriptionID", (gogoproto.customname) = "SubscriptionID"];
+    headers.v1beta1.EncodingType encoding = 4;
 }
 
 message StreamResponse {
