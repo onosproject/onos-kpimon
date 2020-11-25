@@ -16,8 +16,6 @@ import (
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/node"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
-	"time"
-
 	"strconv"
 	"strings"
 )
@@ -134,8 +132,6 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 	select {
 	case indicationMsg := <-ch:
 		log.Debugf("%s message arrives", indicationMsg.EncodingType.String())
-	case <-time.After(20 * time.Second):
-		log.Errorf("Timeout: Subscription response message does not arrives in %d seconds", 20)
 	}
 
 	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
