@@ -5,9 +5,11 @@
 package manager
 
 import (
+	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi"
 )
 
@@ -19,30 +21,41 @@ type Config struct {
 	KeyPath     string
 	CertPath    string
 	E2tEndpoint string
+	E2SubEndpoint string
 	GRPCPort    int
 }
 
 // NewManager creates a new manager
 func NewManager(config Config) *Manager {
 	log.Info("Creating Manager")
-
-	e2tSession, err := ricapie2.NewSession(config.E2tEndpoint)
-
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-
 	return &Manager{
 		Config:     config,
-		E2tSession: e2tSession,
+		Sessions: SBSessions{
+			RicAPIAdmin: admin.NewSession(config.E2tEndpoint),
+			RicAPIE2: ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint),
+		},
+		Chans: Channels{
+			IndCh: make(chan indication.Indication), // Connection between KPIMON core and Southbound
+		},
 	}
 }
 
 // Manager is a manager for the KPIMON service
 type Manager struct {
-	Config     Config
-	E2tSession *ricapie2.E2Session
+	Config		Config
+	Sessions	SBSessions
+	Chans		Channels
+}
+
+// SBSessions is a set of Southbound sessions
+type SBSessions struct {
+	RicAPIE2 *ricapie2.RicAPIE2Session
+	RicAPIAdmin *admin.RicAPIAdminSession
+}
+
+// Channels is a set of channels
+type Channels struct {
+	IndCh		chan indication.Indication
 }
 
 // Run starts the manager and the associated services
@@ -56,12 +69,14 @@ func (m *Manager) Run() {
 // Start starts the manager
 func (m *Manager) Start() error {
 
+	// Start Northbound server
 	err := m.startNorthboundServer()
 	if err != nil {
 		return err
 	}
 
-	go m.E2tSession.Run()
+	// Start Southbound client to watch indication messages
+	go m.Sessions.RicAPIE2.Run(m.Chans.IndCh, m.Sessions.RicAPIAdmin)
 	return nil
 }
 

@@ -19,6 +19,7 @@ func main() {
 	keyPath := flag.String("keyPath", "", "path to client private key")
 	certPath := flag.String("certPath", "", "path to client certificate")
 	e2tEndpoint := flag.String("e2tEndpoint", "onos-e2t:5150", "E2T service endpoint")
+	e2subEndpoint := flag.String("e2subEndpoint", "onos-e2sub:5150", "E2Sub service endpoint")
 
 	ready := make(chan bool)
 
@@ -35,6 +36,7 @@ func main() {
 		KeyPath:     *keyPath,
 		CertPath:    *certPath,
 		E2tEndpoint: *e2tEndpoint,
+		E2SubEndpoint: *e2subEndpoint,
 		GRPCPort:    5150,
 	}
 
