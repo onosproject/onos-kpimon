@@ -11,11 +11,11 @@ import (
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/encoding"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/node"
-	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 	"time"
 
 	"strconv"
@@ -26,8 +26,8 @@ var log = logging.GetLogger("sb-ricapie2")
 
 // E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
 type E2Session struct {
-	E2SubEndpoint	string
-	E2TEndpoint		string
+	E2SubEndpoint string
+	E2TEndpoint   string
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
@@ -35,7 +35,7 @@ func NewSession(e2tEndpoint string, e2subEndpoint string) *E2Session {
 	log.Info("Creating RicAPIE2Session")
 	return &E2Session{
 		E2SubEndpoint: e2subEndpoint,
-		E2TEndpoint: e2tEndpoint,
+		E2TEndpoint:   e2tEndpoint,
 	}
 }
 
@@ -65,7 +65,7 @@ func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs
 	}
 }
 
-func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subscription , error) {
+func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subscription, error) {
 	ricActionsToBeSetup := make(map[types.RicActionID]types.RicActionDef)
 	ricActionsToBeSetup[100] = types.RicActionDef{
 		RicActionID:         100,
@@ -132,9 +132,9 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 	}
 
 	select {
-	case indicationMsg := <- ch:
+	case indicationMsg := <-ch:
 		log.Debugf("%s message arrives", indicationMsg.EncodingType.String())
-	case <- time.After(20 * time.Second):
+	case <-time.After(20 * time.Second):
 		log.Errorf("Timeout: Subscription response message does not arrives in %d seconds", 20)
 	}
 

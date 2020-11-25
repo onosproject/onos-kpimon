@@ -32,12 +32,12 @@ func main() {
 
 	log.Info("Starting onos-kpimon")
 	cfg := manager.Config{
-		CAPath:      *caPath,
-		KeyPath:     *keyPath,
-		CertPath:    *certPath,
-		E2tEndpoint: *e2tEndpoint,
+		CAPath:        *caPath,
+		KeyPath:       *keyPath,
+		CertPath:      *certPath,
+		E2tEndpoint:   *e2tEndpoint,
 		E2SubEndpoint: *e2subEndpoint,
-		GRPCPort:    5150,
+		GRPCPort:      5150,
 	}
 
 	mgr := manager.NewManager(cfg)

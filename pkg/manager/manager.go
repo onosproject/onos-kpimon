@@ -18,12 +18,12 @@ var log = logging.GetLogger("manager")
 
 // Config is a manager configuration
 type Config struct {
-	CAPath      string
-	KeyPath     string
-	CertPath    string
-	E2tEndpoint string
+	CAPath        string
+	KeyPath       string
+	CertPath      string
+	E2tEndpoint   string
 	E2SubEndpoint string
-	GRPCPort    int
+	GRPCPort      int
 }
 
 // NewManager creates a new manager
@@ -31,10 +31,10 @@ func NewManager(config Config) *Manager {
 	log.Info("Creating Manager")
 	indCh := make(chan indication.Indication)
 	return &Manager{
-		Config:     config,
+		Config: config,
 		Sessions: SBSessions{
 			AdminSession: admin.NewSession(config.E2tEndpoint),
-			E2Session: ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint),
+			E2Session:    ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint),
 		},
 		Chans: Channels{
 			IndCh: indCh, // Connection between KPIMON core and Southbound
@@ -47,25 +47,25 @@ func NewManager(config Config) *Manager {
 
 // Manager is a manager for the KPIMON service
 type Manager struct {
-	Config		Config
-	Sessions	SBSessions
-	Chans		Channels
-	Ctrls		Controllers
+	Config   Config
+	Sessions SBSessions
+	Chans    Channels
+	Ctrls    Controllers
 }
 
 // SBSessions is a set of Southbound sessions
 type SBSessions struct {
-	E2Session *ricapie2.E2Session
+	E2Session    *ricapie2.E2Session
 	AdminSession *admin.AdminSession
 }
 
 // Channels is a set of channels
 type Channels struct {
-	IndCh		chan indication.Indication
+	IndCh chan indication.Indication
 }
 
 type Controllers struct {
-	KpiMonCtrl	*controller.KpiMonCtrl
+	KpiMonCtrl *controller.KpiMonCtrl
 }
 
 // Run starts the manager and the associated services

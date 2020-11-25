@@ -52,11 +52,9 @@ func (s *AdminSession) GetListE2NodeIDs() ([]string, error) {
 			log.Errorf("Failed to get e2NodeID")
 			return []string{}, err
 		} else if e2NodeIDStream != nil {
-				nodeIDs = append(nodeIDs, e2NodeIDStream.Id)
+			nodeIDs = append(nodeIDs, e2NodeIDStream.Id)
 		}
 	}
-
-
 
 	return nodeIDs, nil
 }
@@ -64,7 +62,7 @@ func (s *AdminSession) GetListE2NodeIDs() ([]string, error) {
 func (s *AdminSession) oneTimeConnectionHandler() (admin.E2TAdminServiceClient, error) {
 	log.Infof("Connecting to ONOS-E2T ... %S", s.E2TEndpoint)
 
-	opts := []grpc.DialOption {
+	opts := []grpc.DialOption{
 		grpc.WithStreamInterceptor(southbound.RetryingStreamClientInterceptor(100 * time.Microsecond)),
 	}
 
