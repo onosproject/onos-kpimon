@@ -41,7 +41,7 @@ func (s *E2Session) Run() {
 }
 
 // manageConnections handles connections between ONOS-KPIMON and ONOS-E2T.
-func (s *E2Session) manageConnections() {3
+func (s *E2Session) manageConnections() {
 	log.Infof("Connecting to ONOS-E2T...%s", s.E2TEndpoint)
 
 	for {
