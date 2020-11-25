@@ -5,6 +5,7 @@
 package manager
 
 import (
+	"github.com/onosproject/onos-kpimon/pkg/controller"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -28,6 +29,7 @@ type Config struct {
 // NewManager creates a new manager
 func NewManager(config Config) *Manager {
 	log.Info("Creating Manager")
+	indCh := make(chan indication.Indication)
 	return &Manager{
 		Config:     config,
 		Sessions: SBSessions{
@@ -35,7 +37,10 @@ func NewManager(config Config) *Manager {
 			E2Session: ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint),
 		},
 		Chans: Channels{
-			IndCh: make(chan indication.Indication), // Connection between KPIMON core and Southbound
+			IndCh: indCh, // Connection between KPIMON core and Southbound
+		},
+		Ctrls: Controllers{
+			KpiMonCtrl: controller.NewKpiMonController(indCh),
 		},
 	}
 }
@@ -45,6 +50,7 @@ type Manager struct {
 	Config		Config
 	Sessions	SBSessions
 	Chans		Channels
+	Ctrls		Controllers
 }
 
 // SBSessions is a set of Southbound sessions
@@ -56,6 +62,10 @@ type SBSessions struct {
 // Channels is a set of channels
 type Channels struct {
 	IndCh		chan indication.Indication
+}
+
+type Controllers struct {
+	KpiMonCtrl	*controller.KpiMonCtrl
 }
 
 // Run starts the manager and the associated services
@@ -77,6 +87,7 @@ func (m *Manager) Start() error {
 
 	// Start Southbound client to watch indication messages
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
+	go m.Ctrls.KpiMonCtrl.PrintMessages()
 	return nil
 }
 

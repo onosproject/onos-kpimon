@@ -134,9 +134,13 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 	select {
 	case indicationMsg := <- ch:
 		log.Debugf("%s message arrives", indicationMsg.EncodingType.String())
-		indChan <- indicationMsg // add if statement - forward indicationMsg when it is not subscription response message
 	case <- time.After(20 * time.Second):
 		log.Errorf("Timeout: Subscription response message does not arrives in %d seconds", 20)
+	}
+
+	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
+	for indMsg := range ch {
+		indChan <- indMsg
 	}
 
 	return nil
