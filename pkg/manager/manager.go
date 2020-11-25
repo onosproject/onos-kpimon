@@ -31,8 +31,8 @@ func NewManager(config Config) *Manager {
 	return &Manager{
 		Config:     config,
 		Sessions: SBSessions{
-			RicAPIAdmin: admin.NewSession(config.E2tEndpoint),
-			RicAPIE2: ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint),
+			AdminSession: admin.NewSession(config.E2tEndpoint),
+			E2Session: ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint),
 		},
 		Chans: Channels{
 			IndCh: make(chan indication.Indication), // Connection between KPIMON core and Southbound
@@ -49,8 +49,8 @@ type Manager struct {
 
 // SBSessions is a set of Southbound sessions
 type SBSessions struct {
-	RicAPIE2 *ricapie2.RicAPIE2Session
-	RicAPIAdmin *admin.RicAPIAdminSession
+	E2Session *ricapie2.E2Session
+	AdminSession *admin.AdminSession
 }
 
 // Channels is a set of channels
@@ -76,7 +76,7 @@ func (m *Manager) Start() error {
 	}
 
 	// Start Southbound client to watch indication messages
-	go m.Sessions.RicAPIE2.Run(m.Chans.IndCh, m.Sessions.RicAPIAdmin)
+	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
 	return nil
 }
 
