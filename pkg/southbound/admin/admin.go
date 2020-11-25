@@ -33,7 +33,7 @@ func NewSession(e2tEndpoint string) *AdminSession {
 func (s *AdminSession) GetListE2NodeIDs() ([]string, error) {
 	var nodeIDs []string
 
-	adminClient, err := s.oneTimeConnectionHandler()
+	adminClient, err := s.connectionHandler()
 	if err != nil {
 		return []string{}, err
 	}
@@ -59,7 +59,7 @@ func (s *AdminSession) GetListE2NodeIDs() ([]string, error) {
 	return nodeIDs, nil
 }
 
-func (s *AdminSession) oneTimeConnectionHandler() (admin.E2TAdminServiceClient, error) {
+func (s *AdminSession) connectionHandler() (admin.E2TAdminServiceClient, error) {
 	log.Infof("Connecting to ONOS-E2T ... %S", s.E2TEndpoint)
 
 	opts := []grpc.DialOption{
