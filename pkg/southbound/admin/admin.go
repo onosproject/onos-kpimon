@@ -60,7 +60,7 @@ func (s *E2AdminSession) GetListE2NodeIDs() ([]string, error) {
 }
 
 func (s *E2AdminSession) connectionHandler() (admin.E2TAdminServiceClient, error) {
-	log.Infof("Connecting to ONOS-E2T ... %S", s.E2TEndpoint)
+	log.Infof("Connecting to ONOS-E2T ... %s", s.E2TEndpoint)
 
 	opts := []grpc.DialOption{
 		grpc.WithStreamInterceptor(southbound.RetryingStreamClientInterceptor(100 * time.Microsecond)),

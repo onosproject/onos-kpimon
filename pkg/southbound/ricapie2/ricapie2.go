@@ -129,9 +129,6 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 		return err
 	}
 
-	subRespMsg := <-ch
-	log.Debugf("%s message arrives", subRespMsg.EncodingType.String())
-
 	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
 	for indMsg := range ch {
 		indChan <- indMsg
