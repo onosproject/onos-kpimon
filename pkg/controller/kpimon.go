@@ -5,7 +5,7 @@
 package controller
 
 import (
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	e2sm_kpm_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
 	"github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2appdudescriptions"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -54,15 +54,15 @@ func (c *KpiMonCtrl) PrintMessages() {
 		log.Infof("PLMNID: %v", indHeader.GetIndicationHeaderFormat1().GetPLmnIdentity().GetValue())
 
 		// print numActiveUEs information in payload
-		indPayloadAsn1Bytes := e2apFmtMsg.GetInitiatingMessage().GetProcedureCode().GetRicIndication().GetInitiatingMessage().GetProtocolIes().GetE2ApProtocolIes26().GetValue().GetValue()
+		indMessageAsn1Bytes := e2apFmtMsg.GetInitiatingMessage().GetProcedureCode().GetRicIndication().GetInitiatingMessage().GetProtocolIes().GetE2ApProtocolIes26().GetValue().GetValue()
 
-		indPayloadProtoBytes, err := utils.IndicationMessageASN1toProto(indPayloadAsn1Bytes)
+		indMessageProtoBytes, err := utils.IndicationMessageASN1toProto(indMessageAsn1Bytes)
 		if err != nil {
 			log.Errorf("Error - converting asn1 bytes to proto bytes: %s", err)
 		}
 
 		indMessage := e2sm_kpm_ies.E2SmKpmIndicationMessage{}
-		err = proto.Unmarshal(indPayloadProtoBytes, &indMessage)
+		err = proto.Unmarshal(indMessageProtoBytes, &indMessage)
 		if err != nil {
 			log.Errorf("Error - unmashal protobytes to struct: %s", err)
 		}

@@ -2,11 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/kpmctypes"
 	e2sm_kpm_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
 )
 
+// IndicationHeaderASN1toProto convert Header from asn1 bytes to proto bytes
 func IndicationHeaderASN1toProto(asn1Bytes []byte) ([]byte, error) {
 	perBytes, err := kpmctypes.PerDecodeE2SmKpmIndicationHeader(asn1Bytes)
 	if err != nil {
@@ -21,6 +22,7 @@ func IndicationHeaderASN1toProto(asn1Bytes []byte) ([]byte, error) {
 	return protoBytes, nil
 }
 
+// IndicationHeaderProtoToASN1 convert Header from proto bytes to asn1 bytes
 func IndicationHeaderProtoToASN1(protoBytes []byte) ([]byte, error) {
 	protoObj := new(e2sm_kpm_ies.E2SmKpmIndicationHeader)
 	if err := proto.Unmarshal(protoBytes, protoObj); err != nil {
@@ -35,6 +37,7 @@ func IndicationHeaderProtoToASN1(protoBytes []byte) ([]byte, error) {
 	return perBytes, nil
 }
 
+// IndicationMessageASN1toProto convert message from asn1 bytes to proto bytes
 func IndicationMessageASN1toProto(asn1Bytes []byte) ([]byte, error) {
 	perBytes, err := kpmctypes.PerDecodeE2SmKpmIndicationMessage(asn1Bytes)
 	if err != nil {
@@ -49,6 +52,7 @@ func IndicationMessageASN1toProto(asn1Bytes []byte) ([]byte, error) {
 	return protoBytes, nil
 }
 
+// IndicationMessageProtoToASN1 convert message from proto bytes to asn1 bytes
 func IndicationMessageProtoToASN1(protoBytes []byte) ([]byte, error) {
 	protoObj := new(e2sm_kpm_ies.E2SmKpmIndicationMessage)
 	if err := proto.Unmarshal(protoBytes, protoObj); err != nil {
