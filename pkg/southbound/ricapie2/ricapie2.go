@@ -49,7 +49,7 @@ func (s *E2Session) manageConnections(indChan chan indication.Indication, adminS
 	for {
 		nodeIDs, err := adminSession.GetListE2NodeIDs()
 		if err != nil {
-			log.Errorf("Cannot get NodeIDs through Admin API")
+			log.Errorf("Cannot get NodeIDs through Admin API: %s", err)
 		}
 		s.manageConnection(indChan, nodeIDs)
 
