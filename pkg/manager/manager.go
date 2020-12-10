@@ -27,7 +27,7 @@ type Config struct {
 	RicActionID    int32
 	RicRequestorID int32
 	RicInstanceID  int32
-	RanFuncID      int32
+	RanFuncID      uint8
 }
 
 type E2Conf struct {
@@ -95,7 +95,7 @@ func (m *Manager) Start() error {
 
 	// Start Southbound client to watch indication messages
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
-	go m.Ctrls.KpiMonCtrl.PrintMessages()
+	go m.Ctrls.KpiMonCtrl.Run()
 	return nil
 }
 

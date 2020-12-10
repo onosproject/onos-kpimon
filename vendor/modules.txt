@@ -121,7 +121,7 @@ github.com/onosproject/onos-lib-go/pkg/logging
 github.com/onosproject/onos-lib-go/pkg/logging/service
 github.com/onosproject/onos-lib-go/pkg/northbound
 github.com/onosproject/onos-lib-go/pkg/southbound
-# github.com/onosproject/onos-ric-sdk-go v0.6.7 => /Users/woojoong/workspace/onf/sd-ran/xapp/onos-ric-sdk-go/
+# github.com/onosproject/onos-ric-sdk-go v0.6.7
 ## explicit
 github.com/onosproject/onos-ric-sdk-go/pkg/e2
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/app
@@ -400,4 +400,3 @@ honnef.co/go/tools/staticcheck/vrp
 honnef.co/go/tools/stylecheck
 honnef.co/go/tools/unused
 honnef.co/go/tools/version
-# github.com/onosproject/onos-ric-sdk-go => /Users/woojoong/workspace/onf/sd-ran/xapp/onos-ric-sdk-go/

@@ -5,6 +5,9 @@
 package controller
 
 import (
+	"fmt"
+	"github.com/golang/protobuf/proto"
+	e2sm_kpm_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 )
@@ -13,57 +16,72 @@ var log = logging.GetLogger("ctrl-kpimon")
 
 // KpiMonCtrl is the controller for the KPI monitoring
 type KpiMonCtrl struct {
-	IndChan chan indication.Indication
+	IndChan       chan indication.Indication
+	KpiMonResults map[CellIdentity]int32
+}
+
+type CellIdentity struct {
+	CuCpName string
+	PlmnID   string
+	CellID   string
 }
 
 // NewKpiMonController creates a new KpiMonController
 func NewKpiMonController(indChan chan indication.Indication) *KpiMonCtrl {
 	log.Info("Start ONOS-KPIMON Application Controller")
 	return &KpiMonCtrl{
-		IndChan: indChan,
+		IndChan:       indChan,
+		KpiMonResults: make(map[CellIdentity]int32),
 	}
 }
 
-// PrintMessages is the function to print all indication messages - for debugging as of now
-func (c *KpiMonCtrl) PrintMessages() {
-	log.Infof("Test")
-	//for indMsg := range c.IndChan {
+// Run function runs to KpiMonController
+func (c *KpiMonCtrl) Run() {
+	c.listenIndChan()
+}
 
-		//log.Infof("Received msg: %v", indMsg)
-		//indMsgAsn1Bytes := indMsg.Payload.Value.([]byte)
-		//e2apFmtMsg := e2appdudescriptions.E2ApPdu{}
-		//_ = proto.Unmarshal(indMsgAsn1Bytes, &e2apFmtMsg)
-		//
-		//// print header information - PLMN ID
-		//indHeaderAsn1Bytes := e2apFmtMsg.GetInitiatingMessage().GetProcedureCode().GetRicIndication().GetInitiatingMessage().GetProtocolIes().GetE2ApProtocolIes25().GetValue().GetValue()
-		//log.Infof("Header bytes in ASN.1: %v", indHeaderAsn1Bytes)
-		//
-		//indHeaderProtoBytes, err := utils.IndicationHeaderASN1toProto(indHeaderAsn1Bytes)
-		//if err != nil {
-		//	log.Errorf("Error - converting asn1 bytes to proto bytes: %s", err)
-		//}
-		//
-		//indHeader := e2sm_kpm_ies.E2SmKpmIndicationHeader{}
-		//err = proto.Unmarshal(indHeaderProtoBytes, &indHeader)
-		//if err != nil {
-		//	log.Errorf("Error - unmashal protobytes to struct: %s", err)
-		//}
-		//log.Infof("PLMNID: %v", indHeader.GetIndicationHeaderFormat1().GetPLmnIdentity().GetValue())
-		//
-		//// print numActiveUEs information in payload
-		//indMessageAsn1Bytes := e2apFmtMsg.GetInitiatingMessage().GetProcedureCode().GetRicIndication().GetInitiatingMessage().GetProtocolIes().GetE2ApProtocolIes26().GetValue().GetValue()
-		//
-		//indMessageProtoBytes, err := utils.IndicationMessageASN1toProto(indMessageAsn1Bytes)
-		//if err != nil {
-		//	log.Errorf("Error - converting asn1 bytes to proto bytes: %s", err)
-		//}
-		//
-		//indMessage := e2sm_kpm_ies.E2SmKpmIndicationMessage{}
-		//err = proto.Unmarshal(indMessageProtoBytes, &indMessage)
-		//if err != nil {
-		//	log.Errorf("Error - unmashal protobytes to struct: %s", err)
-		//}
-		//log.Infof("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
-		//log.Infof("CUCP Name: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue())
-	//}
+// listenIndChan is the function to listen indication message channel
+func (c *KpiMonCtrl) listenIndChan() {
+	var err error
+	for indMsg := range c.IndChan {
+		indHeaderByte := indMsg.Payload.Header
+		indMessageByte := indMsg.Payload.Message
+
+		indHeader := e2sm_kpm_ies.E2SmKpmIndicationHeader{}
+		err = proto.Unmarshal(indHeaderByte, &indHeader)
+		if err != nil {
+			log.Errorf("Error - Unmarshalling protobytes to struct: %s", err)
+			continue
+		}
+
+		log.Debugf("ind Header: %v", indHeader.GetIndicationHeaderFormat1())
+		log.Debugf("E2SMKPM Ind Header: %v", indHeader.GetE2SmKpmIndicationHeader())
+		log.Debugf("PLMNID: %v", indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetPLmnIdentity().Value)
+		log.Debugf("CellIdentity: %v", indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetNRcellIdentity().Value)
+
+		indMessage := e2sm_kpm_ies.E2SmKpmIndicationMessage{}
+		err = proto.Unmarshal(indMessageByte, &indMessage)
+		if err != nil {
+			log.Errorf("Error - Unmarshalling protobytes to struct: %s", err)
+			continue
+		}
+
+		log.Debugf("ind Msgs: %v", indMessage.GetIndicationMessageFormat1())
+		log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
+		log.Debugf("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
+		log.Debugf("CUCP Name: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue())
+
+		c.updateKpiMonResults(*indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetPLmnIdentity(),
+			*indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetNRcellIdentity(),
+			indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue(),
+			indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
+	}
+}
+
+func (c *KpiMonCtrl) updateKpiMonResults(plmnID e2sm_kpm_ies.PlmnIdentity, cellID e2sm_kpm_ies.NrcellIdentity, cucpName string, numActiveUEs int32) {
+	strPlmnID := fmt.Sprintf("%d", plmnID.Value)
+	strCellID := fmt.Sprintf("%d", cellID.Value.Value)
+	c.KpiMonResults[CellIdentity{CuCpName: cucpName, PlmnID: strPlmnID, CellID: strCellID}] = numActiveUEs
+
+	log.Infof("KpiMonResults: %v", c.KpiMonResults)
 }

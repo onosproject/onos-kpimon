@@ -225,16 +225,13 @@ func (c *subscriptionClient) stream(epID epapi.ID) error {
 
 	go func() {
 		for response := range responseCh {
-			log.Infof("[SDK] received response CH: %v", response)
-			i := indication.Indication{
+			c.ch <- indication.Indication{
 				EncodingType: encoding.Type(response.Header.EncodingType),
 				Payload: indication.Payload{
 					Header: response.Header.IndicationHeader,
 					Message: response.IndicationMessage,
 				},
 			}
-			log.Infof("[SDK] msg: %v", i)
-			c.ch <- i
 		}
 	}()
 	return nil

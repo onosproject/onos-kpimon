@@ -32,15 +32,15 @@ type E2Session struct {
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, ricRequestorID int32, ricInstanceID int32, ranFuncID int32) *E2Session {
+func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, ricRequestorID int32, ricInstanceID int32, ranFuncID uint8) *E2Session {
 	log.Info("Creating RicAPIE2Session")
 	return &E2Session{
 		E2SubEndpoint: e2subEndpoint,
 		E2TEndpoint:   e2tEndpoint,
-		RicActionID: types.RicActionID(ricActionID),
-		RanFuncID: types.RanFunctionID(ranFuncID),
+		RicActionID:   types.RicActionID(ricActionID),
+		RanFuncID:     types.RanFunctionID(ranFuncID),
 		RicRequest: types.RicRequest{
-			InstanceID: types.RicInstanceID(ricInstanceID),
+			InstanceID:  types.RicInstanceID(ricInstanceID),
 			RequestorID: types.RicRequestorID(ricRequestorID),
 		},
 	}
@@ -139,12 +139,9 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 		return err
 	}
 
-	log.Infof("Start forwarding Indication message to controller")
-	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
+	log.Infof("Start forwarding Indication message to KPIMON controller")
 	for indMsg := range ch {
-		log.Infof("Received msg")
-		log.Infof("%q", indMsg)
-		//indChan <- indMsg
+		indChan <- indMsg
 	}
 
 	return nil
