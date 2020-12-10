@@ -51,7 +51,7 @@ func (c *KpiMonCtrl) listenIndChan() {
 		indHeader := e2sm_kpm_ies.E2SmKpmIndicationHeader{}
 		err = proto.Unmarshal(indHeaderByte, &indHeader)
 		if err != nil {
-			log.Errorf("Error - Unmarshalling protobytes to struct: %s", err)
+			log.Errorf("Error - Unmarshalling header protobytes to struct: %s", err)
 			continue
 		}
 
@@ -63,7 +63,12 @@ func (c *KpiMonCtrl) listenIndChan() {
 		indMessage := e2sm_kpm_ies.E2SmKpmIndicationMessage{}
 		err = proto.Unmarshal(indMessageByte, &indMessage)
 		if err != nil {
-			log.Errorf("Error - Unmarshalling protobytes to struct: %s", err)
+			log.Errorf("Error - Unmarshalling message protobytes to struct: %s", err)
+			continue
+		}
+
+		if len(indMessage.GetIndicationMessageFormat1().GetPmContainers()) == 0 {
+			log.Warnf("PmContainers array field in indication message is empty")
 			continue
 		}
 
