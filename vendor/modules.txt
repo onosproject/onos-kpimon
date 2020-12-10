@@ -97,7 +97,6 @@ github.com/onosproject/onos-api/go/onos/e2t/admin
 github.com/onosproject/onos-api/go/onos/e2t/e2
 # github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.0.0-20201126151447-8674e5895a7b
 ## explicit
-github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/kpmctypes
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies
 # github.com/onosproject/onos-e2t v0.6.11
 ## explicit
