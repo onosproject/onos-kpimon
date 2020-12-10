@@ -77,16 +77,16 @@ func (c *KpiMonCtrl) listenIndChan() {
 		log.Debugf("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
 		log.Debugf("CUCP Name: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue())
 
-		c.updateKpiMonResults(*indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetPLmnIdentity(),
-			*indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetNRcellIdentity(),
+		c.updateKpiMonResults(indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetPLmnIdentity(),
+			indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetNRcellIdentity(),
 			indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue(),
 			indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
 	}
 }
 
-func (c *KpiMonCtrl) updateKpiMonResults(plmnID e2sm_kpm_ies.PlmnIdentity, cellID e2sm_kpm_ies.NrcellIdentity, cucpName string, numActiveUEs int32) {
-	strPlmnID := fmt.Sprintf("%d", plmnID.Value)
-	strCellID := fmt.Sprintf("%d", cellID.Value.Value)
+func (c *KpiMonCtrl) updateKpiMonResults(plmnID *e2sm_kpm_ies.PlmnIdentity, cellID *e2sm_kpm_ies.NrcellIdentity, cucpName string, numActiveUEs int32) {
+	strPlmnID := fmt.Sprintf("%d", (*plmnID).Value)
+	strCellID := fmt.Sprintf("%d", (*cellID).Value.Value)
 	c.KpiMonResults[CellIdentity{CuCpName: cucpName, PlmnID: strPlmnID, CellID: strCellID}] = numActiveUEs
 
 	log.Infof("KpiMonResults: %v", c.KpiMonResults)
