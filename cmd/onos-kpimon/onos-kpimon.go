@@ -6,10 +6,12 @@ package main
 
 import (
 	"flag"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi/target"
 
 	"github.com/onosproject/onos-kpimon/pkg/manager"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi"
 )
 
 var log = logging.GetLogger("main")
@@ -34,6 +36,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	gnmiConfig := gnmi.Config{
+		ModelInfo: target.ModelInfo{
+			ModelType: target.RIC,
+			Version:   "1.0.0",
+		},
+	}
+
 	log.Info("Starting onos-kpimon")
 	cfg := manager.Config{
 		CAPath:         *caPath,
@@ -42,6 +51,7 @@ func main() {
 		E2tEndpoint:    *e2tEndpoint,
 		E2SubEndpoint:  *e2subEndpoint,
 		GRPCPort:       5150,
+		GnmiConfig:     &gnmiConfig,
 		RicActionID:    int32(*ricActionID),
 		RicRequestorID: int32(*ricRequestorID),
 		RicInstanceID:  int32(*ricInstanceID),

@@ -24,6 +24,7 @@ type Config struct {
 	E2tEndpoint    string
 	E2SubEndpoint  string
 	GRPCPort       int
+	GnmiConfig     *gnmi.Config
 	RicActionID    int32
 	RicRequestorID int32
 	RicInstanceID  int32
@@ -110,11 +111,10 @@ func (m *Manager) startNorthboundServer() error {
 		true,
 		northbound.SecurityConfig{}))
 
+	gnmiAgent := gnmi.RegisterConfigurable(m.Config.GnmiConfig)
+
 	// TODO add services including gnmi service
-	s.AddService(gnmi.NewService(gnmi.ModelInfo{
-		ModelType: gnmi.RIC,
-		Version:   "1.0.0",
-	}))
+	s.AddService(gnmiAgent)
 
 	doneCh := make(chan error)
 	go func() {

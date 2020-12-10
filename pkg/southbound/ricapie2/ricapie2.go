@@ -6,21 +6,19 @@ package ricapie2
 
 import (
 	"context"
-	"github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2apies"
-	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder"
+	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/encoding"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/node"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 	"strconv"
 	"strings"
 )
 
 var log = logging.GetLogger("sb-ricapie2")
+
+const serviceModelID = "e2sm_kpm-v1beta1"
 
 // E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
 type E2Session struct {
@@ -71,32 +69,29 @@ func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs
 	}
 }
 
-func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subscription, error) {
-	ricActionsToBeSetup := make(map[types.RicActionID]types.RicActionDef)
-	ricActionsToBeSetup[s.RicActionID] = types.RicActionDef{
-		RicActionID:         s.RicActionID,
-		RicActionType:       e2apies.RicactionType_RICACTION_TYPE_REPORT,
-		RicSubsequentAction: e2apies.RicsubsequentActionType_RICSUBSEQUENT_ACTION_TYPE_CONTINUE,
-		Ricttw:              e2apies.RictimeToWait_RICTIME_TO_WAIT_ZERO,
-		RicActionDefinition: []byte{0x11, 0x22},
-	}
-
-	E2apPdu, err := pdubuilder.CreateRicSubscriptionRequestE2apPdu(s.RicRequest,
-		s.RanFuncID, nil, ricActionsToBeSetup)
-
-	if err != nil {
-		return subscription.Subscription{}, err
-	}
-
-	subReq := subscription.Subscription{
-		EncodingType: encoding.PROTO,
-		NodeID:       node.ID(nodeID),
-		Payload: subscription.Payload{
-			Value: E2apPdu,
+func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.SubscriptionDetails, error) {
+	return subscription.SubscriptionDetails{
+		E2NodeID: subscription.E2NodeID(nodeID),
+		ServiceModel: subscription.ServiceModel{
+			ID: subscription.ServiceModelID(serviceModelID),
 		},
-	}
-
-	return subReq, nil
+		EventTrigger: subscription.EventTrigger{
+			Payload: subscription.Payload{
+				Encoding: subscription.Encoding_ENCODING_PROTO,
+				Data:     []byte{},
+			},
+		},
+		Actions: []subscription.Action{
+			{
+				ID:   int32(s.RicActionID),
+				Type: subscription.ActionType_ACTION_TYPE_REPORT,
+				SubsequentAction: &subscription.SubsequentAction{
+					Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
+					TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
+				},
+			},
+		},
+	}, nil
 }
 
 func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []string) error {
