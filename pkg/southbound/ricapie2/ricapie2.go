@@ -26,14 +26,23 @@ var log = logging.GetLogger("sb-ricapie2")
 type E2Session struct {
 	E2SubEndpoint string
 	E2TEndpoint   string
+	RicActionID   types.RicActionID
+	RicRequest    types.RicRequest
+	RanFuncID     types.RanFunctionID
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string, e2subEndpoint string) *E2Session {
+func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, ricRequestorID int32, ricInstanceID int32, ranFuncID int32) *E2Session {
 	log.Info("Creating RicAPIE2Session")
 	return &E2Session{
 		E2SubEndpoint: e2subEndpoint,
 		E2TEndpoint:   e2tEndpoint,
+		RicActionID: types.RicActionID(ricActionID),
+		RanFuncID: types.RanFunctionID(ranFuncID),
+		RicRequest: types.RicRequest{
+			InstanceID: types.RicInstanceID(ricInstanceID),
+			RequestorID: types.RicRequestorID(ricRequestorID),
+		},
 	}
 }
 
@@ -45,7 +54,6 @@ func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.
 
 // manageConnections handles connections between ONOS-KPIMON and ONOS-E2T/E2Sub.
 func (s *E2Session) manageConnections(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
-	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
 	for {
 		nodeIDs, err := adminSession.GetListE2NodeIDs()
 		if err != nil {
@@ -65,16 +73,16 @@ func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs
 
 func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subscription, error) {
 	ricActionsToBeSetup := make(map[types.RicActionID]types.RicActionDef)
-	ricActionsToBeSetup[100] = types.RicActionDef{
-		RicActionID:         100,
+	ricActionsToBeSetup[s.RicActionID] = types.RicActionDef{
+		RicActionID:         s.RicActionID,
 		RicActionType:       e2apies.RicactionType_RICACTION_TYPE_REPORT,
 		RicSubsequentAction: e2apies.RicsubsequentActionType_RICSUBSEQUENT_ACTION_TYPE_CONTINUE,
 		Ricttw:              e2apies.RictimeToWait_RICTIME_TO_WAIT_ZERO,
 		RicActionDefinition: []byte{0x11, 0x22},
 	}
 
-	E2apPdu, err := pdubuilder.CreateRicSubscriptionRequestE2apPdu(types.RicRequest{RequestorID: 0, InstanceID: 0},
-		0, nil, ricActionsToBeSetup)
+	E2apPdu, err := pdubuilder.CreateRicSubscriptionRequestE2apPdu(s.RicRequest,
+		s.RanFuncID, nil, ricActionsToBeSetup)
 
 	if err != nil {
 		return subscription.Subscription{}, err
@@ -92,6 +100,8 @@ func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subsc
 }
 
 func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []string) error {
+	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
+
 	e2SubHost := strings.Split(s.E2SubEndpoint, ":")[0]
 	e2SubPort, err := strconv.Atoi(strings.Split(s.E2SubEndpoint, ":")[1])
 	if err != nil {
@@ -129,9 +139,12 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 		return err
 	}
 
+	log.Infof("Start forwarding Indication message to controller")
 	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
 	for indMsg := range ch {
-		indChan <- indMsg
+		log.Infof("Received msg")
+		log.Infof("%q", indMsg)
+		//indChan <- indMsg
 	}
 
 	return nil

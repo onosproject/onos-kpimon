@@ -18,12 +18,19 @@ var log = logging.GetLogger("manager")
 
 // Config is a manager configuration
 type Config struct {
-	CAPath        string
-	KeyPath       string
-	CertPath      string
-	E2tEndpoint   string
-	E2SubEndpoint string
-	GRPCPort      int
+	CAPath         string
+	KeyPath        string
+	CertPath       string
+	E2tEndpoint    string
+	E2SubEndpoint  string
+	GRPCPort       int
+	RicActionID    int32
+	RicRequestorID int32
+	RicInstanceID  int32
+	RanFuncID      int32
+}
+
+type E2Conf struct {
 }
 
 // NewManager creates a new manager
@@ -34,7 +41,7 @@ func NewManager(config Config) *Manager {
 		Config: config,
 		Sessions: SBSessions{
 			AdminSession: admin.NewSession(config.E2tEndpoint),
-			E2Session:    ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint),
+			E2Session:    ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, config.RicRequestorID, config.RicInstanceID, config.RanFuncID),
 		},
 		Chans: Channels{
 			IndCh: indCh, // Connection between KPIMON core and Southbound
