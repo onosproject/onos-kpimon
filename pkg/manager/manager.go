@@ -30,9 +30,6 @@ type Config struct {
 	RanFuncID      uint8
 }
 
-type E2Conf struct {
-}
-
 // NewManager creates a new manager
 func NewManager(config Config) *Manager {
 	log.Info("Creating Manager")
