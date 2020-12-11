@@ -28,23 +28,17 @@ type E2Session struct {
 	E2SubEndpoint  string
 	E2TEndpoint    string
 	RicActionID    types.RicActionID
-	RicRequest     types.RicRequest
-	RanFuncID      types.RanFunctionID
 	ReportPeriodMs uint64
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, ricRequestorID int32, ricInstanceID int32, ranFuncID uint8, reportPeriodMs uint64) *E2Session {
+func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64) *E2Session {
 	log.Info("Creating RicAPIE2Session")
 	return &E2Session{
-		E2SubEndpoint: e2subEndpoint,
-		E2TEndpoint:   e2tEndpoint,
-		RicActionID:   types.RicActionID(ricActionID),
-		RanFuncID:     types.RanFunctionID(ranFuncID),
-		RicRequest: types.RicRequest{
-			InstanceID:  types.RicInstanceID(ricInstanceID),
-			RequestorID: types.RicRequestorID(ricRequestorID),
-		},
+		E2SubEndpoint:  e2subEndpoint,
+		E2TEndpoint:    e2tEndpoint,
+		RicActionID:    types.RicActionID(ricActionID),
+		ReportPeriodMs: reportPeriodMs,
 	}
 }
 
