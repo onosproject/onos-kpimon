@@ -6,7 +6,9 @@ package ricapie2
 
 import (
 	"context"
+	"github.com/golang/protobuf/proto"
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
+	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -125,6 +127,29 @@ func (s *E2Session) getReportPeriod() subscription.TimeToWait {
 	return period
 }
 
+func (s *E2Session) createEventTriggerData() []byte {
+
+	// Hardcoded just for test
+	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(12)
+	if err != nil {
+		log.Errorf("Failed to create event trigger definition data: %v", err)
+		return []byte{}
+	}
+
+	err = e2SmKpmEventTriggerDefinition.Validate()
+	if err != nil {
+		log.Errorf("Failed to validate the event trigger definition: %v", err)
+		return []byte{}
+	}
+
+	protoBytes, err := proto.Marshal(e2SmKpmEventTriggerDefinition)
+	if err != nil {
+		log.Errorf("Failed to marshal event trigger definition: %v", err)
+	}
+
+	return protoBytes
+}
+
 func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.SubscriptionDetails, error) {
 
 	return subscription.SubscriptionDetails{
@@ -135,7 +160,7 @@ func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subsc
 		EventTrigger: subscription.EventTrigger{
 			Payload: subscription.Payload{
 				Encoding: subscription.Encoding_ENCODING_PROTO,
-				Data:     []byte{},
+				Data:     s.createEventTriggerData(),
 			},
 		},
 		Actions: []subscription.Action{

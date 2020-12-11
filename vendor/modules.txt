@@ -105,6 +105,7 @@ github.com/onosproject/onos-api/go/onos/e2t/admin
 github.com/onosproject/onos-api/go/onos/e2t/e2
 # github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.6.7
 ## explicit
+github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies
 # github.com/onosproject/onos-e2t v0.6.12
 ## explicit
