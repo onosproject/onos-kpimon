@@ -6,7 +6,7 @@ package admin
 
 import (
 	"context"
-	"github.com/onosproject/onos-e2t/api/admin/v1"
+	adminapi "github.com/onosproject/onos-api/go/onos/e2t/admin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/southbound"
 	"google.golang.org/grpc"
@@ -38,7 +38,7 @@ func (s *E2AdminSession) GetListE2NodeIDs() ([]string, error) {
 		return []string{}, err
 	}
 
-	e2NodeIDStream, err := adminClient.ListE2NodeConnections(context.Background(), &admin.ListE2NodeConnectionsRequest{})
+	e2NodeIDStream, err := adminClient.ListE2NodeConnections(context.Background(), &adminapi.ListE2NodeConnectionsRequest{})
 	if err != nil {
 		log.Errorf("Failed to call ListE2NodeConnections")
 		return []string{}, err
@@ -59,8 +59,8 @@ func (s *E2AdminSession) GetListE2NodeIDs() ([]string, error) {
 	return nodeIDs, nil
 }
 
-func (s *E2AdminSession) connectionHandler() (admin.E2TAdminServiceClient, error) {
-	log.Infof("Connecting to ONOS-E2T ... %S", s.E2TEndpoint)
+func (s *E2AdminSession) connectionHandler() (adminapi.E2TAdminServiceClient, error) {
+	log.Infof("Connecting to ONOS-E2T ... %s", s.E2TEndpoint)
 
 	opts := []grpc.DialOption{
 		grpc.WithStreamInterceptor(southbound.RetryingStreamClientInterceptor(100 * time.Microsecond)),
@@ -74,7 +74,7 @@ func (s *E2AdminSession) connectionHandler() (admin.E2TAdminServiceClient, error
 
 	log.Infof("Connected to %s", s.E2TEndpoint)
 
-	adminClient := admin.NewE2TAdminServiceClient(conn)
+	adminClient := adminapi.NewE2TAdminServiceClient(conn)
 	return adminClient, nil
 
 }

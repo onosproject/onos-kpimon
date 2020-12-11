@@ -20,11 +20,11 @@ github.com/eapache/go-resiliency/breaker
 github.com/eapache/go-xerial-snappy
 # github.com/eapache/queue v1.1.0
 github.com/eapache/queue
-# github.com/envoyproxy/protoc-gen-validate v0.1.0
+# github.com/envoyproxy/protoc-gen-validate v0.4.1
 github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/ericchiang/oidc v0.0.0-20160908143337-11f62933e071
 github.com/ericchiang/oidc
-# github.com/fsnotify/fsnotify v1.4.7
+# github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/gogoproto
@@ -34,16 +34,18 @@ github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/types
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 github.com/golang/glog
-# github.com/golang/protobuf v1.4.2
+# github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/golang/snappy v0.0.1
+# github.com/golang/snappy v0.0.2
 github.com/golang/snappy
-# github.com/google/go-cmp v0.5.1
+# github.com/google/gnxi v0.0.0-20201130113533-3b2d93b83a53
+github.com/google/gnxi/utils/xpath
+# github.com/google/go-cmp v0.5.3
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
@@ -71,7 +73,7 @@ github.com/hashicorp/hcl/json/token
 # github.com/jcmturner/gofork v1.0.0
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
-# github.com/klauspost/compress v1.9.8
+# github.com/klauspost/compress v1.11.3
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
@@ -80,32 +82,36 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/kylelemons/godebug v1.1.0
 github.com/kylelemons/godebug/diff
 github.com/kylelemons/godebug/pretty
-# github.com/magiconair/properties v1.8.1
+# github.com/magiconair/properties v1.8.4
 github.com/magiconair/properties
 # github.com/mitchellh/go-homedir v1.1.0
 github.com/mitchellh/go-homedir
-# github.com/mitchellh/mapstructure v1.1.2
+# github.com/mitchellh/mapstructure v1.3.3
 github.com/mitchellh/mapstructure
-# github.com/onosproject/config-models/modelplugin/ric-1.0.0 v0.0.0-20201119164938-25d8368c14ba
+# github.com/onosproject/config-models/modelplugin/ric-1.0.0 v0.0.0-20201206002829-0f3b7ebb025b
 github.com/onosproject/config-models/modelplugin/ric-1.0.0/modelplugin
 github.com/onosproject/config-models/modelplugin/ric-1.0.0/ric_1_0_0
-# github.com/onosproject/onos-e2sub v0.6.4
-github.com/onosproject/onos-e2sub/api/e2/endpoint/v1beta1
-github.com/onosproject/onos-e2sub/api/e2/subscription/v1beta1
-github.com/onosproject/onos-e2sub/api/e2/task/v1beta1
-# github.com/onosproject/onos-e2t v0.6.7
+# github.com/onosproject/onos-api/go v0.6.10
 ## explicit
-github.com/onosproject/onos-e2t/api/admin/v1
+github.com/onosproject/onos-api/go/onos/config
+github.com/onosproject/onos-api/go/onos/config/change
+github.com/onosproject/onos-api/go/onos/config/change/device
+github.com/onosproject/onos-api/go/onos/config/device
+github.com/onosproject/onos-api/go/onos/e2sub/endpoint
+github.com/onosproject/onos-api/go/onos/e2sub/subscription
+github.com/onosproject/onos-api/go/onos/e2sub/task
+github.com/onosproject/onos-api/go/onos/e2t/admin
+github.com/onosproject/onos-api/go/onos/e2t/e2
+# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.6.7
+## explicit
+github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder
+github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies
+# github.com/onosproject/onos-e2t v0.6.12
+## explicit
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2ap-commondatatypes
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2ap-constants
-github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2apcontainers
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2apies
-github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2appducontents
-github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2appdudescriptions
-github.com/onosproject/onos-e2t/api/ricapi/e2/headers/v1beta1
-github.com/onosproject/onos-e2t/api/ricapi/e2/v1beta1
-github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder
 github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types
 # github.com/onosproject/onos-lib-go v0.6.25
 ## explicit
@@ -118,21 +124,22 @@ github.com/onosproject/onos-lib-go/pkg/logging
 github.com/onosproject/onos-lib-go/pkg/logging/service
 github.com/onosproject/onos-lib-go/pkg/northbound
 github.com/onosproject/onos-lib-go/pkg/southbound
-# github.com/onosproject/onos-ric-sdk-go v0.6.3
+# github.com/onosproject/onos-ric-sdk-go v0.6.8
 ## explicit
+github.com/onosproject/onos-ric-sdk-go/pkg/app
 github.com/onosproject/onos-ric-sdk-go/pkg/e2
-github.com/onosproject/onos-ric-sdk-go/pkg/e2/app
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/connection
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/creds
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/encoding
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/endpoint
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication
-github.com/onosproject/onos-ric-sdk-go/pkg/e2/node
-github.com/onosproject/onos-ric-sdk-go/pkg/e2/sm
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscriptiontask
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/termination
 github.com/onosproject/onos-ric-sdk-go/pkg/gnmi
+github.com/onosproject/onos-ric-sdk-go/pkg/gnmi/path
+github.com/onosproject/onos-ric-sdk-go/pkg/gnmi/target
+github.com/onosproject/onos-ric-sdk-go/pkg/gnmi/value
 # github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802
 github.com/openconfig/gnmi/ctree
 github.com/openconfig/gnmi/errlist
@@ -142,34 +149,38 @@ github.com/openconfig/gnmi/value
 # github.com/openconfig/goyang v0.2.1
 github.com/openconfig/goyang/pkg/indent
 github.com/openconfig/goyang/pkg/yang
-# github.com/openconfig/ygot v0.8.11
-github.com/openconfig/ygot/experimental/ygotutils
+# github.com/openconfig/ygot v0.8.12
 github.com/openconfig/ygot/genutil
 github.com/openconfig/ygot/util
 github.com/openconfig/ygot/ygen
 github.com/openconfig/ygot/ygot
 github.com/openconfig/ygot/ytypes
-# github.com/pelletier/go-toml v1.2.0
+# github.com/pelletier/go-toml v1.8.1
 github.com/pelletier/go-toml
-# github.com/pierrec/lz4 v2.4.1+incompatible
+# github.com/pierrec/lz4 v2.6.0+incompatible
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35
 github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
 # github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 github.com/rcrowley/go-metrics
-# github.com/spf13/afero v1.2.2
+# github.com/spf13/afero v1.4.1
 github.com/spf13/afero
 github.com/spf13/afero/mem
-# github.com/spf13/cast v1.3.0
+# github.com/spf13/cast v1.3.1
 github.com/spf13/cast
-# github.com/spf13/jwalterweatherman v1.0.0
+# github.com/spf13/jwalterweatherman v1.1.0
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
-# github.com/spf13/viper v1.6.2
+# github.com/spf13/viper v1.7.1
 github.com/spf13/viper
+# github.com/stretchr/testify v1.6.1
+## explicit
+github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
 # go.uber.org/atomic v1.5.0
@@ -190,10 +201,12 @@ golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/md4
 golang.org/x/crypto/pbkdf2
-# golang.org/x/lint v0.0.0-20190930215403-16217165b5de
+# golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20200707034311-ab3426394381
+# golang.org/x/mod v0.3.0
+golang.org/x/mod/semver
+# golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/http/httpguts
@@ -207,15 +220,15 @@ golang.org/x/net/trace
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20200803210538-64077c9b5642
+# golang.org/x/sys v0.0.0-20201113233024-12cec1faf1ba
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
-# golang.org/x/text v0.3.3
+# golang.org/x/text v0.3.4
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.0.0-20200113040837-eac381796e91
+# golang.org/x/tools v0.0.0-20201116002733-ac45abd4c88c
 golang.org/x/tools/go/analysis
 golang.org/x/tools/go/analysis/passes/inspect
 golang.org/x/tools/go/ast/astutil
@@ -227,10 +240,19 @@ golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/types/objectpath
 golang.org/x/tools/go/types/typeutil
-golang.org/x/tools/internal/fastwalk
-golang.org/x/tools/internal/gopathwalk
-golang.org/x/tools/internal/semver
-# google.golang.org/appengine v1.6.1
+golang.org/x/tools/internal/analysisinternal
+golang.org/x/tools/internal/event
+golang.org/x/tools/internal/event/core
+golang.org/x/tools/internal/event/keys
+golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/gocommand
+golang.org/x/tools/internal/lsp/fuzzy
+golang.org/x/tools/internal/packagesinternal
+golang.org/x/tools/internal/typesinternal
+# golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
+# google.golang.org/appengine v1.6.5
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
@@ -238,8 +260,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20200731012542-8145dea6a485
-google.golang.org/genproto/googleapis/rpc/code
+# google.golang.org/genproto v0.0.0-20201113130914-ce600e9a6f9e
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.33.2
 ## explicit
@@ -286,6 +307,7 @@ google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
 # google.golang.org/protobuf v1.25.0
+## explicit
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
@@ -316,7 +338,7 @@ google.golang.org/protobuf/types/descriptorpb
 google.golang.org/protobuf/types/known/anypb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
-# gopkg.in/ini.v1 v1.51.0
+# gopkg.in/ini.v1 v1.62.0
 gopkg.in/ini.v1
 # gopkg.in/jcmturner/aescts.v1 v1.0.1
 gopkg.in/jcmturner/aescts.v1
@@ -366,6 +388,8 @@ gopkg.in/square/go-jose.v2/cipher
 gopkg.in/square/go-jose.v2/json
 # gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+gopkg.in/yaml.v3
 # honnef.co/go/tools v0.0.1-2019.2.3
 honnef.co/go/tools/arg
 honnef.co/go/tools/cmd/staticcheck

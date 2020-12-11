@@ -6,34 +6,64 @@ package ricapie2
 
 import (
 	"context"
-	"github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2apies"
-	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/pdubuilder"
+	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
+	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
+	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/encoding"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/node"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
+	"google.golang.org/protobuf/proto"
+	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var log = logging.GetLogger("sb-ricapie2")
 
+var periodRanges = utils.PeriodRanges{
+	{Min: 0, Max: 10, Value: 0},
+	{Min: 11, Max: 20, Value: 1},
+	{Min: 21, Max: 32, Value: 2},
+	{Min: 33, Max: 40, Value: 3},
+	{Min: 41, Max: 60, Value: 4},
+	{Min: 61, Max: 64, Value: 5},
+	{Min: 65, Max: 70, Value: 6},
+	{Min: 71, Max: 80, Value: 7},
+	{Min: 81, Max: 128, Value: 8},
+	{Min: 129, Max: 160, Value: 9},
+	{Min: 161, Max: 256, Value: 10},
+	{Min: 257, Max: 320, Value: 11},
+	{Min: 321, Max: 512, Value: 12},
+	{Min: 513, Max: 640, Value: 13},
+	{Min: 641, Max: 1024, Value: 14},
+	{Min: 1025, Max: 1280, Value: 15},
+	{Min: 1281, Max: 2048, Value: 16},
+	{Min: 2049, Max: 2560, Value: 17},
+	{Min: 2561, Max: 5120, Value: 18},
+	{Min: 5121, Max: math.MaxInt64, Value: 19},
+}
+
+const serviceModelID = "e2sm_kpm-v1beta1"
+
 // E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
 type E2Session struct {
-	E2SubEndpoint string
-	E2TEndpoint   string
+	E2SubEndpoint  string
+	E2TEndpoint    string
+	RicActionID    types.RicActionID
+	ReportPeriodMs uint64
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string, e2subEndpoint string) *E2Session {
+func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64) *E2Session {
 	log.Info("Creating RicAPIE2Session")
 	return &E2Session{
-		E2SubEndpoint: e2subEndpoint,
-		E2TEndpoint:   e2tEndpoint,
+		E2SubEndpoint:  e2subEndpoint,
+		E2TEndpoint:    e2tEndpoint,
+		RicActionID:    types.RicActionID(ricActionID),
+		ReportPeriodMs: reportPeriodMs,
 	}
 }
 
@@ -45,11 +75,15 @@ func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.
 
 // manageConnections handles connections between ONOS-KPIMON and ONOS-E2T/E2Sub.
 func (s *E2Session) manageConnections(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
-	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
 	for {
 		nodeIDs, err := adminSession.GetListE2NodeIDs()
 		if err != nil {
-			log.Errorf("Cannot get NodeIDs through Admin API")
+			log.Errorf("Cannot get NodeIDs through Admin API: %s", err)
+			continue
+		} else if len(nodeIDs) == 0 {
+			log.Warn("CU-CP is not running - wait until CU-CP is ready")
+			time.Sleep(1000 * time.Millisecond)
+			continue
 		}
 		s.manageConnection(indChan, nodeIDs)
 
@@ -63,35 +97,59 @@ func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs
 	}
 }
 
-func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subscription, error) {
-	ricActionsToBeSetup := make(map[types.RicActionID]types.RicActionDef)
-	ricActionsToBeSetup[100] = types.RicActionDef{
-		RicActionID:         100,
-		RicActionType:       e2apies.RicactionType_RICACTION_TYPE_REPORT,
-		RicSubsequentAction: e2apies.RicsubsequentActionType_RICSUBSEQUENT_ACTION_TYPE_CONTINUE,
-		Ricttw:              e2apies.RictimeToWait_RICTIME_TO_WAIT_ZERO,
-		RicActionDefinition: []byte{0x11, 0x22},
-	}
+func (s *E2Session) createEventTriggerData() []byte {
 
-	E2apPdu, err := pdubuilder.CreateRicSubscriptionRequestE2apPdu(types.RicRequest{RequestorID: 0, InstanceID: 0},
-		0, nil, ricActionsToBeSetup)
-
+	rtPeriod := periodRanges.Search(int(s.ReportPeriodMs))
+	log.Infof("Received period value: %v, Set the period to: %v", s.ReportPeriodMs, rtPeriod)
+	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(int32(rtPeriod))
 	if err != nil {
-		return subscription.Subscription{}, err
+		log.Errorf("Failed to create event trigger definition data: %v", err)
+		return []byte{}
 	}
 
-	subReq := subscription.Subscription{
-		EncodingType: encoding.PROTO,
-		NodeID:       node.ID(nodeID),
-		Payload: subscription.Payload{
-			Value: E2apPdu,
+	err = e2SmKpmEventTriggerDefinition.Validate()
+	if err != nil {
+		log.Errorf("Failed to validate the event trigger definition: %v", err)
+		return []byte{}
+	}
+
+	protoBytes, err := proto.Marshal(e2SmKpmEventTriggerDefinition)
+	if err != nil {
+		log.Errorf("Failed to marshal event trigger definition: %v", err)
+	}
+
+	return protoBytes
+}
+
+func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.SubscriptionDetails, error) {
+
+	return subscription.SubscriptionDetails{
+		E2NodeID: subscription.E2NodeID(nodeID),
+		ServiceModel: subscription.ServiceModel{
+			ID: subscription.ServiceModelID(serviceModelID),
 		},
-	}
-
-	return subReq, nil
+		EventTrigger: subscription.EventTrigger{
+			Payload: subscription.Payload{
+				Encoding: subscription.Encoding_ENCODING_PROTO,
+				Data:     s.createEventTriggerData(),
+			},
+		},
+		Actions: []subscription.Action{
+			{
+				ID:   int32(s.RicActionID),
+				Type: subscription.ActionType_ACTION_TYPE_REPORT,
+				SubsequentAction: &subscription.SubsequentAction{
+					Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
+					TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
+				},
+			},
+		},
+	}, nil
 }
 
 func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []string) error {
+	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
+
 	e2SubHost := strings.Split(s.E2SubEndpoint, ":")[0]
 	e2SubPort, err := strconv.Atoi(strings.Split(s.E2SubEndpoint, ":")[1])
 	if err != nil {
@@ -129,10 +187,7 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 		return err
 	}
 
-	subRespMsg := <-ch
-	log.Debugf("%s message arrives", subRespMsg.EncodingType.String())
-
-	// Start to send Indication messages to the indChan which KPIMON Controller will subscribe
+	log.Infof("Start forwarding Indication message to KPIMON controller")
 	for indMsg := range ch {
 		indChan <- indMsg
 	}

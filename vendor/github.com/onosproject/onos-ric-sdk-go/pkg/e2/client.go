@@ -11,12 +11,12 @@ import (
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/encoding"
 
 	"github.com/google/uuid"
-	epapi "github.com/onosproject/onos-e2sub/api/e2/endpoint/v1beta1"
-	subapi "github.com/onosproject/onos-e2sub/api/e2/subscription/v1beta1"
-	subtaskapi "github.com/onosproject/onos-e2sub/api/e2/task/v1beta1"
-	e2tapi "github.com/onosproject/onos-e2t/api/ricapi/e2/v1beta1"
+	epapi "github.com/onosproject/onos-api/go/onos/e2sub/endpoint"
+	subapi "github.com/onosproject/onos-api/go/onos/e2sub/subscription"
+	subtaskapi "github.com/onosproject/onos-api/go/onos/e2sub/task"
+	e2tapi "github.com/onosproject/onos-api/go/onos/e2t/e2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/app"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/app"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/connection"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/endpoint"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
@@ -63,7 +63,7 @@ func (c ServiceConfig) GetPort() int {
 // Client is an E2 client
 type Client interface {
 	// Subscribe subscribes the client to indications
-	Subscribe(ctx context.Context, sub subscription.Subscription, ch chan<- indication.Indication) error
+	Subscribe(ctx context.Context, details subapi.SubscriptionDetails, ch chan<- indication.Indication) error
 }
 
 // NewClient creates a new E2 client
@@ -92,60 +92,16 @@ type e2Client struct {
 	conns      *connection.Manager
 }
 
-func getEncodingType(subscription subscription.Subscription) subapi.Encoding {
-	var encodingType subapi.Encoding
-	switch subscription.EncodingType.String() {
-	case encoding.ASN1.String():
-		encodingType = subapi.Encoding_ENCODING_ASN1
-	case encoding.PROTO.String():
-		encodingType = subapi.Encoding_ENCODING_PROTO
-	default:
-		encodingType = subapi.Encoding_ENCODING_PROTO
-
-	}
-	return encodingType
-
-}
-
-func getPayload(subscription subscription.Subscription) ([]byte, error) {
-	var payload []byte
-	var err error
-	switch subscription.EncodingType.String() {
-	case encoding.ASN1.String():
-		// TODO encode the payload in ASN.1
-	case encoding.PROTO.String():
-		payload, err = subscription.Payload.GetProtoValue()
-
-	default:
-		payload, err = subscription.Payload.GetProtoValue()
-
-	}
-	return payload, err
-}
-
-func (c *e2Client) Subscribe(ctx context.Context, subscription subscription.Subscription, ch chan<- indication.Indication) error {
+func (c *e2Client) Subscribe(ctx context.Context, details subapi.SubscriptionDetails, ch chan<- indication.Indication) error {
 	id, err := uuid.NewUUID()
 	if err != nil {
 		return err
 	}
 
-	encodingType := getEncodingType(subscription)
-	bytes, err := getPayload(subscription)
-	if err != nil {
-		return err
-	}
-
 	sub := &subapi.Subscription{
-		ID:       subapi.ID(id.String()),
-		AppID:    subapi.AppID(c.config.AppID),
-		E2NodeID: subapi.E2NodeID(subscription.NodeID),
-		ServiceModel: &subapi.ServiceModel{
-			ID: subapi.ServiceModelID(subscription.ServiceModel.ID),
-		},
-		Payload: &subapi.Payload{
-			Encoding: encodingType,
-			Bytes:    bytes,
-		},
+		ID:      subapi.ID(id.String()),
+		AppID:   subapi.AppID(c.config.AppID),
+		Details: &details,
 	}
 
 	client := &subscriptionClient{
@@ -228,7 +184,8 @@ func (c *subscriptionClient) stream(epID epapi.ID) error {
 			c.ch <- indication.Indication{
 				EncodingType: encoding.Type(response.Header.EncodingType),
 				Payload: indication.Payload{
-					Value: response.Payload,
+					Header:  response.Header.IndicationHeader,
+					Message: response.IndicationMessage,
 				},
 			}
 		}
