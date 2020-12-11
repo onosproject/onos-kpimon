@@ -99,8 +99,9 @@ func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs
 
 func (s *E2Session) createEventTriggerData() []byte {
 
-	// Hardcoded just for test
-	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(int32(periodRanges.Search(int(s.ReportPeriodMs))))
+	rtPeriod := periodRanges.Search(int(s.ReportPeriodMs))
+	log.Infof("Received period value: %v, Set the period to: %v", s.ReportPeriodMs, rtPeriod)
+	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(int32(rtPeriod))
 	if err != nil {
 		log.Errorf("Failed to create event trigger definition data: %v", err)
 		return []byte{}
