@@ -48,7 +48,7 @@ func (c *KpiMonCtrl) listenIndChan() {
 		indHeaderByte := indMsg.Payload.Header
 		indMessageByte := indMsg.Payload.Message
 
-		log.Infof("Low data format: %v", indMsg)
+		log.Infof("Raw msg: %v", indMsg)
 
 		indHeader := e2sm_kpm_ies.E2SmKpmIndicationHeader{}
 		err = proto.Unmarshal(indHeaderByte, &indHeader)

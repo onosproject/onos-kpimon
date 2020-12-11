@@ -23,12 +23,12 @@ const serviceModelID = "e2sm_kpm-v1beta1"
 
 // E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
 type E2Session struct {
-	E2SubEndpoint string
-	E2TEndpoint   string
-	RicActionID   types.RicActionID
-	RicRequest    types.RicRequest
-	RanFuncID     types.RanFunctionID
-	ReportPeriodMs	uint64
+	E2SubEndpoint  string
+	E2TEndpoint    string
+	RicActionID    types.RicActionID
+	RicRequest     types.RicRequest
+	RanFuncID      types.RanFunctionID
+	ReportPeriodMs uint64
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
@@ -117,7 +117,7 @@ func (s *E2Session) getReportPeriod() subscription.TimeToWait {
 	case 60000:
 		period = subscription.TimeToWait_TIME_TO_WAIT_W60S
 	default:
-		log.Warnf("period should be one of {0, 1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 60000}ms," +
+		log.Warnf("period should be one of {0, 1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 60000}ms,"+
 			"%v is not valid; period is set to default period 0ms", s.ReportPeriodMs)
 		period = subscription.TimeToWait_TIME_TO_WAIT_ZERO
 	}
