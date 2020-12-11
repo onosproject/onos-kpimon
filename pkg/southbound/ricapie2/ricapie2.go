@@ -6,7 +6,7 @@ package ricapie2
 
 import (
 	"context"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
@@ -78,59 +78,77 @@ func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs
 	}
 }
 
-func (s *E2Session) getReportPeriod() subscription.TimeToWait {
-	var period subscription.TimeToWait
-
-	switch s.ReportPeriodMs {
-	case 0:
-		period = subscription.TimeToWait_TIME_TO_WAIT_ZERO
-	case 1:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W1MS
-	case 2:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W2MS
-	case 5:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W5MS
-	case 10:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W10MS
-	case 20:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W20MS
-	case 30:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W30MS
-	case 40:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W40MS
-	case 50:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W50MS
-	case 100:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W100MS
-	case 200:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W200MS
-	case 500:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W500MS
-	case 1000:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W1S
-	case 2000:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W2S
-	case 5000:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W5S
-	case 10000:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W10S
-	case 20000:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W20S
-	case 60000:
-		period = subscription.TimeToWait_TIME_TO_WAIT_W60S
-	default:
-		log.Warnf("period should be one of {0, 1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 60000}ms,"+
-			"%v is not valid; period is set to default period 0ms", s.ReportPeriodMs)
-		period = subscription.TimeToWait_TIME_TO_WAIT_ZERO
+func (s *E2Session) getReportPeriod() int32 {
+	if s.ReportPeriodMs <= 10 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS10 period", s.ReportPeriodMs)
+		return 0
+	} else if s.ReportPeriodMs <= 20 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS20 period", s.ReportPeriodMs)
+		return 1
+	} else if s.ReportPeriodMs <= 32 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS32 period", s.ReportPeriodMs)
+		return 2
+	} else if s.ReportPeriodMs <= 40 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS40 period", s.ReportPeriodMs)
+		return 3
+	} else if s.ReportPeriodMs <= 60 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS60 period", s.ReportPeriodMs)
+		return 4
+	} else if s.ReportPeriodMs <= 64 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS64 period", s.ReportPeriodMs)
+		return 5
+	} else if s.ReportPeriodMs <= 70 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS70 period", s.ReportPeriodMs)
+		return 6
+	} else if s.ReportPeriodMs <= 80 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS80 period", s.ReportPeriodMs)
+		return 7
+	} else if s.ReportPeriodMs <= 128 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS128 period", s.ReportPeriodMs)
+		return 8
+	} else if s.ReportPeriodMs <= 160 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS160 period", s.ReportPeriodMs)
+		return 9
+	} else if s.ReportPeriodMs <= 256 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS256 period", s.ReportPeriodMs)
+		return 10
+	} else if s.ReportPeriodMs <= 320 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS320 period", s.ReportPeriodMs)
+		return 11
+	} else if s.ReportPeriodMs <= 512 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS512 period", s.ReportPeriodMs)
+		return 12
+	} else if s.ReportPeriodMs <= 640 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS640 period", s.ReportPeriodMs)
+		return 13
+	} else if s.ReportPeriodMs <= 1024 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS1024 period", s.ReportPeriodMs)
+		return 14
+	} else if s.ReportPeriodMs <= 1280 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS1280 period", s.ReportPeriodMs)
+		return 15
+	} else if s.ReportPeriodMs <= 2048 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS2048 period", s.ReportPeriodMs)
+		return 16
+	} else if s.ReportPeriodMs <= 2560 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS2560 period", s.ReportPeriodMs)
+		return 17
+	} else if s.ReportPeriodMs <= 5120 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS5120 period", s.ReportPeriodMs)
+		return 18
+	} else if s.ReportPeriodMs <= 10240 {
+		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS10240 period", s.ReportPeriodMs)
+		return 19
+	} else {
+		log.Warnf("received period %v; too much long value - set to the maximum period RtPeriodIe_RT_PERIOD_IE_MS10240", s.ReportPeriodMs)
+		return 19
 	}
-
-	return period
 }
 
 func (s *E2Session) createEventTriggerData() []byte {
 
 	// Hardcoded just for test
-	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(12)
+	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(s.getReportPeriod())
 	if err != nil {
 		log.Errorf("Failed to create event trigger definition data: %v", err)
 		return []byte{}
@@ -169,7 +187,7 @@ func (s *E2Session) createSubscriptionRequest(nodeID string) (subscription.Subsc
 				Type: subscription.ActionType_ACTION_TYPE_REPORT,
 				SubsequentAction: &subscription.SubsequentAction{
 					Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
-					TimeToWait: s.getReportPeriod(),
+					TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
 				},
 			},
 		},

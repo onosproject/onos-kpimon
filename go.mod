@@ -3,7 +3,7 @@ module github.com/onosproject/onos-kpimon
 go 1.14
 
 require (
-	github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf v1.4.3
 	github.com/onosproject/onos-api/go v0.6.10
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.6.7
 	github.com/onosproject/onos-e2t v0.6.12

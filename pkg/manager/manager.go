@@ -150,7 +150,7 @@ func (m *Manager) getReportPeriod() (uint64, error) {
 		return 0, err
 	}
 
-	log.Infof("period value: %v", val)
+	log.Infof("Received period value: %v", val)
 
 	return val, nil
 }
