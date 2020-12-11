@@ -12,6 +12,8 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi/path"
+	"strconv"
 )
 
 var log = logging.GetLogger("manager")
@@ -39,7 +41,7 @@ func NewManager(config Config) *Manager {
 		Config: config,
 		Sessions: SBSessions{
 			AdminSession: admin.NewSession(config.E2tEndpoint),
-			E2Session:    ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, config.RicRequestorID, config.RicInstanceID, config.RanFuncID),
+			E2Session:    ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, config.RicRequestorID, config.RicInstanceID, config.RanFuncID, 0),
 		},
 		Chans: Channels{
 			IndCh: indCh, // Connection between KPIMON core and Southbound
@@ -92,8 +94,13 @@ func (m *Manager) Start() error {
 	}
 
 	// Start Southbound client to watch indication messages
+	m.Sessions.E2Session.ReportPeriodMs, err = m.getReportPeriod()
+	if err != nil {
+		log.Errorf("Failed to get report period so period is set to 0ms: %v", err)
+	}
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
 	go m.Ctrls.KpiMonCtrl.Run()
+
 	return nil
 }
 
@@ -127,4 +134,23 @@ func (m *Manager) startNorthboundServer() error {
 		}
 	}()
 	return <-doneCh
+}
+
+func (m *Manager) getReportPeriod() (uint64, error) {
+	p1 := path.Path{
+		Value: "/report_period/interval",
+	}
+	paths := []path.Path{p1}
+	resp, err := m.Config.GnmiConfig.Get(gnmi.GetRequest{Paths: paths})
+	if err != nil {
+		return 0, err
+	}
+	val, err := strconv.ParseUint(resp.Response[p1].(string), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Infof("period value: %v", val)
+
+	return val, nil
 }

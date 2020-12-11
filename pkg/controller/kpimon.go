@@ -48,6 +48,8 @@ func (c *KpiMonCtrl) listenIndChan() {
 		indHeaderByte := indMsg.Payload.Header
 		indMessageByte := indMsg.Payload.Message
 
+		log.Infof("Low data format: %v", indMsg)
+
 		indHeader := e2sm_kpm_ies.E2SmKpmIndicationHeader{}
 		err = proto.Unmarshal(indHeaderByte, &indHeader)
 		if err != nil {
@@ -55,10 +57,10 @@ func (c *KpiMonCtrl) listenIndChan() {
 			continue
 		}
 
-		log.Debugf("ind Header: %v", indHeader.GetIndicationHeaderFormat1())
-		log.Debugf("E2SMKPM Ind Header: %v", indHeader.GetE2SmKpmIndicationHeader())
-		log.Debugf("PLMNID: %v", indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetPLmnIdentity().Value)
-		log.Debugf("CellIdentity: %v", indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetNRcellIdentity().Value)
+		log.Infof("ind Header: %v", indHeader.GetIndicationHeaderFormat1())
+		log.Infof("E2SMKPM Ind Header: %v", indHeader.GetE2SmKpmIndicationHeader())
+		log.Infof("PLMNID: %v", indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetPLmnIdentity().Value)
+		log.Infof("CellIdentity: %v", indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetNRcellIdentity().Value)
 
 		indMessage := e2sm_kpm_ies.E2SmKpmIndicationMessage{}
 		err = proto.Unmarshal(indMessageByte, &indMessage)
@@ -67,15 +69,17 @@ func (c *KpiMonCtrl) listenIndChan() {
 			continue
 		}
 
+		log.Infof("ind Msgs: %v", indMessage.GetIndicationMessageFormat1())
+		log.Infof("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
+
+		// allow pmContainers array being empty
 		if len(indMessage.GetIndicationMessageFormat1().GetPmContainers()) == 0 {
 			log.Warnf("PmContainers array field in indication message is empty")
 			continue
 		}
 
-		log.Debugf("ind Msgs: %v", indMessage.GetIndicationMessageFormat1())
-		log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
-		log.Debugf("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
-		log.Debugf("CUCP Name: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue())
+		log.Infof("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
+		log.Infof("CUCP Name: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue())
 
 		c.updateKpiMonResults(indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetPLmnIdentity(),
 			indHeader.GetIndicationHeaderFormat1().GetNRcgi().GetNRcellIdentity(),
