@@ -8,6 +8,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/controller"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
+	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
@@ -34,6 +35,7 @@ type Config struct {
 func NewManager(config Config) *Manager {
 	log.Info("Creating Manager")
 	indCh := make(chan indication.Indication)
+
 	return &Manager{
 		Config: config,
 		Sessions: SBSessions{
@@ -51,10 +53,11 @@ func NewManager(config Config) *Manager {
 
 // Manager is a manager for the KPIMON service
 type Manager struct {
-	Config   Config
-	Sessions SBSessions
-	Chans    Channels
-	Ctrls    Controllers
+	Config      Config
+	Sessions    SBSessions
+	Chans       Channels
+	Ctrls       Controllers
+	PeriodRange utils.PeriodRanges
 }
 
 // SBSessions is a set of Southbound sessions

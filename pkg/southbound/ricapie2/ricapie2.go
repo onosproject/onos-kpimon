@@ -10,16 +10,41 @@ import (
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
+	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
+	"math"
 	"strconv"
 	"strings"
 	"time"
 )
 
 var log = logging.GetLogger("sb-ricapie2")
+
+var periodRanges = utils.PeriodRanges{
+	{Min: 0, Max: 10, Value: 0},
+	{Min: 11, Max: 20, Value: 1},
+	{Min: 21, Max: 32, Value: 2},
+	{Min: 33, Max: 40, Value: 3},
+	{Min: 41, Max: 60, Value: 4},
+	{Min: 61, Max: 64, Value: 5},
+	{Min: 65, Max: 70, Value: 6},
+	{Min: 71, Max: 80, Value: 7},
+	{Min: 81, Max: 128, Value: 8},
+	{Min: 129, Max: 160, Value: 9},
+	{Min: 161, Max: 256, Value: 10},
+	{Min: 257, Max: 320, Value: 11},
+	{Min: 321, Max: 512, Value: 12},
+	{Min: 513, Max: 640, Value: 13},
+	{Min: 641, Max: 1024, Value: 14},
+	{Min: 1025, Max: 1280, Value: 15},
+	{Min: 1281, Max: 2048, Value: 16},
+	{Min: 2049, Max: 2560, Value: 17},
+	{Min: 2561, Max: 5120, Value: 18},
+	{Min: 5121, Max: math.MaxInt64, Value: 19},
+}
 
 const serviceModelID = "e2sm_kpm-v1beta1"
 
@@ -72,77 +97,10 @@ func (s *E2Session) manageConnection(indChan chan indication.Indication, nodeIDs
 	}
 }
 
-func (s *E2Session) getReportPeriod() int32 {
-	if s.ReportPeriodMs <= 10 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS10 period", s.ReportPeriodMs)
-		return 0
-	} else if s.ReportPeriodMs <= 20 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS20 period", s.ReportPeriodMs)
-		return 1
-	} else if s.ReportPeriodMs <= 32 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS32 period", s.ReportPeriodMs)
-		return 2
-	} else if s.ReportPeriodMs <= 40 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS40 period", s.ReportPeriodMs)
-		return 3
-	} else if s.ReportPeriodMs <= 60 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS60 period", s.ReportPeriodMs)
-		return 4
-	} else if s.ReportPeriodMs <= 64 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS64 period", s.ReportPeriodMs)
-		return 5
-	} else if s.ReportPeriodMs <= 70 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS70 period", s.ReportPeriodMs)
-		return 6
-	} else if s.ReportPeriodMs <= 80 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS80 period", s.ReportPeriodMs)
-		return 7
-	} else if s.ReportPeriodMs <= 128 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS128 period", s.ReportPeriodMs)
-		return 8
-	} else if s.ReportPeriodMs <= 160 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS160 period", s.ReportPeriodMs)
-		return 9
-	} else if s.ReportPeriodMs <= 256 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS256 period", s.ReportPeriodMs)
-		return 10
-	} else if s.ReportPeriodMs <= 320 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS320 period", s.ReportPeriodMs)
-		return 11
-	} else if s.ReportPeriodMs <= 512 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS512 period", s.ReportPeriodMs)
-		return 12
-	} else if s.ReportPeriodMs <= 640 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS640 period", s.ReportPeriodMs)
-		return 13
-	} else if s.ReportPeriodMs <= 1024 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS1024 period", s.ReportPeriodMs)
-		return 14
-	} else if s.ReportPeriodMs <= 1280 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS1280 period", s.ReportPeriodMs)
-		return 15
-	} else if s.ReportPeriodMs <= 2048 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS2048 period", s.ReportPeriodMs)
-		return 16
-	} else if s.ReportPeriodMs <= 2560 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS2560 period", s.ReportPeriodMs)
-		return 17
-	} else if s.ReportPeriodMs <= 5120 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS5120 period", s.ReportPeriodMs)
-		return 18
-	} else if s.ReportPeriodMs <= 10240 {
-		log.Infof("received period %v; set RtPeriodIe_RT_PERIOD_IE_MS10240 period", s.ReportPeriodMs)
-		return 19
-	} else {
-		log.Warnf("received period %v; too much long value - set to the maximum period RtPeriodIe_RT_PERIOD_IE_MS10240", s.ReportPeriodMs)
-		return 19
-	}
-}
-
 func (s *E2Session) createEventTriggerData() []byte {
 
 	// Hardcoded just for test
-	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(s.getReportPeriod())
+	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(int32(periodRanges.Search(int(s.ReportPeriodMs))))
 	if err != nil {
 		log.Errorf("Failed to create event trigger definition data: %v", err)
 		return []byte{}
