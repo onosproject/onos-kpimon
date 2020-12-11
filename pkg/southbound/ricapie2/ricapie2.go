@@ -6,7 +6,7 @@ package ricapie2
 
 import (
 	"context"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
