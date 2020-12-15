@@ -181,7 +181,7 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 		return err
 	}
 
-	err = client.Subscribe(ctx, subReq, ch)
+	_, err = client.Subscribe(ctx, subReq, ch)
 	if err != nil {
 		log.Error("Can't send SubscriptionRequest message")
 		return err

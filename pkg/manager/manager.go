@@ -6,6 +6,7 @@ package manager
 
 import (
 	"github.com/onosproject/onos-kpimon/pkg/controller"
+	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -122,6 +123,7 @@ func (m *Manager) startNorthboundServer() error {
 
 	// TODO add services including gnmi service
 	s.AddService(gnmiAgent)
+	s.AddService(nbi.NewService(m.Ctrls.KpiMonCtrl))
 
 	doneCh := make(chan error)
 	go func() {
@@ -153,4 +155,8 @@ func (m *Manager) getReportPeriod() (uint64, error) {
 	log.Infof("Received period value: %v", val)
 
 	return val, nil
+}
+
+func (m *Manager) GetKpimonController() *controller.KpiMonCtrl {
+	return m.Ctrls.KpiMonCtrl
 }
