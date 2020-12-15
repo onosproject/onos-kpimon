@@ -19,7 +19,7 @@ var log = logging.GetLogger("ctrl-kpimon")
 type KpiMonCtrl struct {
 	IndChan       chan indication.Indication
 	KpiMonResults map[CellIdentity]int32
-	KpiMonMutex	  sync.RWMutex
+	KpiMonMutex   sync.RWMutex
 }
 
 // CellIdentity is the ID for each cell
@@ -65,14 +65,14 @@ func (c *KpiMonCtrl) listenIndChan() {
 		log.Debugf("E2SMKPM Ind Header: %v", indHeader.GetE2SmKpmIndicationHeader())
 
 		if c.hasENbID(indHeader.GetIndicationHeaderFormat1()) {
-			log.Debugf("eNB field: %v", 		indHeader.GetIndicationHeaderFormat1().GetIdGlobalKpmnodeId().GetENb().String())
-			plmnID, nodeID, err = c.parseHeaderENbID(indHeader.GetIndicationHeaderFormat1())
+			log.Debugf("eNB field: %v", indHeader.GetIndicationHeaderFormat1().GetIdGlobalKpmnodeId().GetENb().String())
+			plmnID, nodeID, _ = c.parseHeaderENbID(indHeader.GetIndicationHeaderFormat1())
 
 			log.Debugf("PLMNID: %v", plmnID)
 			log.Debugf("eNBID: %v", nodeID)
 		} else if c.hasGNbID(indHeader.GetIndicationHeaderFormat1()) {
-			log.Debugf("gNB field: %v", 		indHeader.GetIndicationHeaderFormat1().GetIdGlobalKpmnodeId().GetGNb().String())
-			plmnID, nodeID, err = c.parseHeaserGNbID(indHeader.GetIndicationHeaderFormat1())
+			log.Debugf("gNB field: %v", indHeader.GetIndicationHeaderFormat1().GetIdGlobalKpmnodeId().GetGNb().String())
+			plmnID, nodeID, _ = c.parseHeaserGNbID(indHeader.GetIndicationHeaderFormat1())
 
 			log.Debugf("PLMNID: %v", plmnID)
 			log.Debugf("gNBID: %v", nodeID)

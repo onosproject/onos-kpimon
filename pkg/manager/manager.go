@@ -156,7 +156,3 @@ func (m *Manager) getReportPeriod() (uint64, error) {
 
 	return val, nil
 }
-
-func (m *Manager) GetKpimonController() *controller.KpiMonCtrl {
-	return m.Ctrls.KpiMonCtrl
-}

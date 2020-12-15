@@ -7,10 +7,10 @@ package cli
 import (
 	"context"
 	"fmt"
-	"text/tabwriter"
+	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
 	"github.com/onosproject/onos-lib-go/pkg/cli"
 	"github.com/spf13/cobra"
-	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
+	"text/tabwriter"
 )
 
 func getListNumActiveUEsCommand() *cobra.Command {
