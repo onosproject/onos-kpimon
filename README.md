@@ -14,7 +14,7 @@ To begin with, `onos-kpimon` sends a subscription message to [`onos-e2sub`](http
 When the subscription is finished successfully, `onos-kpimon` application starts to get E2 indication messages from E2 node, such as `CU-CP`, through [`onos-e2t`](https://github.com/onosproject/onos-e2t).
 Then, `onos-kpimon` decodes each indication message by using E2 KPM service model which is defined in [`onos-e2-sm` plugin](https://github.com/onosproject/onos-e2-sm).
 The monitoring result can be shown with the CLI through [`onos-sdran-cli`](https://github.com/onosproject/onos-cli).
-`onos-kpimon` sends the monitoring result to the `onos-sdran-cli` through gRPC protocol defined in [`onos-api`](https://github.com/onosproject/onos/api) repository.
+`onos-kpimon` sends the monitoring result to the `onos-sdran-cli` through gRPC protocol defined in [`onos-api`](https://github.com/onosproject/onos-api) repository.
 
 ## Command Line Interface
 ### Show the number of UEs
