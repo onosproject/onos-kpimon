@@ -1,4 +1,4 @@
-# ONOS-KPIMON
+# onos-kpimon
 The xApplication for ONOS SD-RAN (µONOS Architecture) to monitor KPI
 
 ## Overview
