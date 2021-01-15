@@ -81,8 +81,10 @@ func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, rep
 func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
 	log.Info("Started KPIMON Southbound session")
 	s.configEventCh = make(chan event.Event)
-	go s.watchConfigChanges()
-	//s.manageConnections(indChan, adminSession)
+	go func() {
+		_ = s.watchConfigChanges()
+	}()
+	s.manageConnections(indChan, adminSession)
 
 }
 
@@ -94,23 +96,19 @@ func (s *E2Session) updateReportPeriod(event event.Event) error {
 	value, err := configutils.ToUint64(interval.Value)
 	if err != nil {
 		return err
-	} else {
-		s.mu.Lock()
-		s.ReportPeriodMs = value
-		s.mu.Unlock()
 	}
+	s.mu.Lock()
+	s.ReportPeriodMs = value
+	s.mu.Unlock()
 	return nil
 }
 
 func (s *E2Session) processConfigEvents() {
-	for {
-		select {
-		case configEvent := <-s.configEventCh:
-			if configEvent.Key == utils.ReportPeriodConfigPath {
-				err := s.updateReportPeriod(configEvent)
-				if err != nil {
-					log.Error(err)
-				}
+	for configEvent := range s.configEventCh {
+		if configEvent.Key == utils.ReportPeriodConfigPath {
+			err := s.updateReportPeriod(configEvent)
+			if err != nil {
+				log.Error(err)
 			}
 		}
 	}

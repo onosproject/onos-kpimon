@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	// ReportPeriodConfigPath report period config path
 	ReportPeriodConfigPath = "/report_period/interval"
 )
 
