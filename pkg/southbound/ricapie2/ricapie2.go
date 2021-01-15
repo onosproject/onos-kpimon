@@ -106,6 +106,7 @@ func (s *E2Session) updateReportPeriod(event event.Event) error {
 func (s *E2Session) processConfigEvents() {
 	for configEvent := range s.configEventCh {
 		if configEvent.Key == utils.ReportPeriodConfigPath {
+			log.Debug("Config Event received:", configEvent)
 			err := s.updateReportPeriod(configEvent)
 			if err != nil {
 				log.Error(err)
