@@ -9,6 +9,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
@@ -61,6 +62,8 @@ type E2Session struct {
 	RicActionID    types.RicActionID
 	ReportPeriodMs uint64
 	AppConfig      *app.Config
+	mu             sync.RWMutex
+	configEventCh  chan event.Event
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
@@ -77,7 +80,9 @@ func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, rep
 // Run starts the southbound to watch indication messages
 func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
 	log.Info("Started KPIMON Southbound session")
-	s.manageConnections(indChan, adminSession)
+	s.configEventCh = make(chan event.Event)
+	go s.watchConfigChanges()
+	//s.manageConnections(indChan, adminSession)
 
 }
 
@@ -90,22 +95,17 @@ func (s *E2Session) updateReportPeriod(event event.Event) error {
 	if err != nil {
 		return err
 	} else {
+		s.mu.Lock()
 		s.ReportPeriodMs = value
+		s.mu.Unlock()
 	}
 	return nil
 }
 
-func (s *E2Session) watchConfigChanges() error {
-	ch := make(chan event.Event)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	err := s.AppConfig.Watch(ctx, ch)
-	if err != nil {
-		return err
-	}
+func (s *E2Session) processConfigEvents() {
 	for {
 		select {
-		case configEvent := <-ch:
+		case configEvent := <-s.configEventCh:
 			if configEvent.Key == utils.ReportPeriodConfigPath {
 				err := s.updateReportPeriod(configEvent)
 				if err != nil {
@@ -113,8 +113,18 @@ func (s *E2Session) watchConfigChanges() error {
 				}
 			}
 		}
-
 	}
+}
+
+func (s *E2Session) watchConfigChanges() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := s.AppConfig.Watch(ctx, s.configEventCh)
+	if err != nil {
+		return err
+	}
+	s.processConfigEvents()
+	return nil
 }
 
 // manageConnections handles connections between ONOS-KPIMON and ONOS-E2T/E2Sub.

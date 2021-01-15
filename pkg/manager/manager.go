@@ -108,8 +108,8 @@ func (m *Manager) Start() error {
 		log.Errorf("Failed to get report period so period is set to 0ms: %v", err)
 	}
 
-	//go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
-	//go m.Ctrls.KpiMonCtrl.Run()
+	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
+	go m.Ctrls.KpiMonCtrl.Run()
 
 	return nil
 }
