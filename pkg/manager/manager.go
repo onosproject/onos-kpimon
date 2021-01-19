@@ -12,7 +12,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/config/app"
+	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
 	configurable "github.com/onosproject/onos-ric-sdk-go/pkg/config/registry"
 	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
@@ -125,7 +125,7 @@ func (m *Manager) registerConfigurable() error {
 	if err != nil {
 		return err
 	}
-	m.Config.AppConfig = appConfig.Config
+	m.Config.AppConfig = appConfig.Config.(*app.Config)
 	return nil
 }
 
