@@ -6,19 +6,26 @@ package ricapie2
 
 import (
 	"context"
+	"math"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
+	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
+
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+
 	"google.golang.org/protobuf/proto"
-	"math"
-	"strconv"
-	"strings"
-	"time"
 )
 
 var log = logging.GetLogger("sb-ricapie2")
@@ -54,6 +61,9 @@ type E2Session struct {
 	E2TEndpoint    string
 	RicActionID    types.RicActionID
 	ReportPeriodMs uint64
+	AppConfig      *app.Config
+	mu             sync.RWMutex
+	configEventCh  chan event.Event
 }
 
 // NewSession creates a new southbound session of ONOS-KPIMON
@@ -70,7 +80,50 @@ func NewSession(e2tEndpoint string, e2subEndpoint string, ricActionID int32, rep
 // Run starts the southbound to watch indication messages
 func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.E2AdminSession) {
 	log.Info("Started KPIMON Southbound session")
+	s.configEventCh = make(chan event.Event)
+	go func() {
+		_ = s.watchConfigChanges()
+	}()
 	s.manageConnections(indChan, adminSession)
+
+}
+
+func (s *E2Session) updateReportPeriod(event event.Event) error {
+	interval, err := s.AppConfig.Get(event.Key)
+	if err != nil {
+		return err
+	}
+	value, err := configutils.ToUint64(interval.Value)
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.ReportPeriodMs = value
+	s.mu.Unlock()
+	return nil
+}
+
+func (s *E2Session) processConfigEvents() {
+	for configEvent := range s.configEventCh {
+		if configEvent.Key == utils.ReportPeriodConfigPath {
+			log.Debug("Config Event received:", configEvent)
+			err := s.updateReportPeriod(configEvent)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+	}
+}
+
+func (s *E2Session) watchConfigChanges() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := s.AppConfig.Watch(ctx, s.configEventCh)
+	if err != nil {
+		return err
+	}
+	s.processConfigEvents()
+	return nil
 }
 
 // manageConnections handles connections between ONOS-KPIMON and ONOS-E2T/E2Sub.

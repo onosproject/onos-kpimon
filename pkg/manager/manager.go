@@ -12,10 +12,10 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
+	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
+	configurable "github.com/onosproject/onos-ric-sdk-go/pkg/config/registry"
+	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/gnmi/path"
-	"strconv"
 )
 
 var log = logging.GetLogger("manager")
@@ -28,7 +28,7 @@ type Config struct {
 	E2tEndpoint   string
 	E2SubEndpoint string
 	GRPCPort      int
-	GnmiConfig    *gnmi.Config
+	AppConfig     *app.Config
 	RicActionID   int32
 }
 
@@ -94,11 +94,20 @@ func (m *Manager) Start() error {
 		return err
 	}
 
+	// Register the xApp as configurable entity
+	err = m.registerConfigurable()
+	if err != nil {
+		log.Error("Failed to register the app as a configurable entity", err)
+		return err
+	}
+
 	// Start Southbound client to watch indication messages
 	m.Sessions.E2Session.ReportPeriodMs, err = m.getReportPeriod()
+	m.Sessions.E2Session.AppConfig = m.Config.AppConfig
 	if err != nil {
 		log.Errorf("Failed to get report period so period is set to 0ms: %v", err)
 	}
+
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
 	go m.Ctrls.KpiMonCtrl.Run()
 
@@ -110,6 +119,16 @@ func (m *Manager) Close() {
 	log.Info("Closing Manager")
 }
 
+// registerConfigurable registers the xApp as a configurable entity
+func (m *Manager) registerConfigurable() error {
+	appConfig, err := configurable.RegisterConfigurable(&configurable.RegisterRequest{})
+	if err != nil {
+		return err
+	}
+	m.Config.AppConfig = appConfig.Config.(*app.Config)
+	return nil
+}
+
 func (m *Manager) startNorthboundServer() error {
 	s := northbound.NewServer(northbound.NewServerCfg(
 		m.Config.CAPath,
@@ -119,10 +138,6 @@ func (m *Manager) startNorthboundServer() error {
 		true,
 		northbound.SecurityConfig{}))
 
-	gnmiAgent := gnmi.RegisterConfigurable(m.Config.GnmiConfig)
-
-	// TODO add services including gnmi service
-	s.AddService(gnmiAgent)
 	s.AddService(nbi.NewService(m.Ctrls.KpiMonCtrl))
 
 	doneCh := make(chan error)
@@ -139,20 +154,13 @@ func (m *Manager) startNorthboundServer() error {
 }
 
 func (m *Manager) getReportPeriod() (uint64, error) {
-	p1 := path.Path{
-		Value: "/report_period/interval",
-	}
-	paths := []path.Path{p1}
-	resp, err := m.Config.GnmiConfig.Get(gnmi.GetRequest{Paths: paths})
+	interval, _ := m.Config.AppConfig.Get(utils.ReportPeriodConfigPath)
+	val, err := configutils.ToUint64(interval.Value)
 	if err != nil {
-		return 0, err
-	}
-	val, err := strconv.ParseUint(resp.Response[p1].(string), 10, 64)
-	if err != nil {
+		log.Error(err)
 		return 0, err
 	}
 
 	log.Infof("Received period value: %v", val)
-
 	return val, nil
 }

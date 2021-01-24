@@ -5,8 +5,14 @@
 package utils
 
 import (
-	e2smkpmies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
 	"sort"
+
+	e2smkpmies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
+)
+
+const (
+	// ReportPeriodConfigPath report period config path
+	ReportPeriodConfigPath = "/report_period/interval"
 )
 
 // PeriodRange is a tuple of min and max value for each RT Period IE value
