@@ -17,6 +17,10 @@ test: build deps linters license_check
 	go test -race github.com/onosproject/onos-kpimon/pkg/...
 	go test -race github.com/onosproject/onos-kpimon/cmd/...
 
+jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
+jenkins-test: build-tools deps license_check linters
+	TEST_PACKAGES=github.com/onosproject/onos-kpimon/... ./../build-tools/build/jenkins/make-unit
+
 coverage: # @HELP generate unit test coverage data
 coverage: build deps linters license_check
 	./build/bin/coveralls-coverage
@@ -26,11 +30,19 @@ deps: # @HELP ensure that the required dependencies are in place
 	bash -c "diff -u <(echo -n) <(git diff go.mod)"
 	bash -c "diff -u <(echo -n) <(git diff go.sum)"
 
-linters: # @HELP examines Go source code and reports coding problems
-	golangci-lint run --timeout 30m
+linters: golang-ci # @HELP examines Go source code and reports coding problems
+	golangci-lint run --timeout 5m
 
-license_check: # @HELP examine and ensure license headers exist
+build-tools: # @HELP install the ONOS build tools if needed
 	@if [ ! -d "../build-tools" ]; then cd .. && git clone https://github.com/onosproject/build-tools.git; fi
+
+jenkins-tools: # @HELP installs tooling needed for Jenkins
+	cd .. && go get -u github.com/jstemmer/go-junit-report && go get github.com/t-yuki/gocover-cobertura
+
+golang-ci: # @HELP install golang-ci if not present
+	golangci-lint --version || curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b `go env GOPATH`/bin v1.36.0
+
+license_check: build-tools # @HELP examine and ensure license headers exist
 	./../build-tools/licensing/boilerplate.py -v --rootdir=${CURDIR} --boilerplate LicenseRef-ONF-Member-1.0
 
 gofmt: # @HELP run the Go format validation
@@ -72,6 +84,9 @@ all: build images
 
 publish: # @HELP publish version on github and dockerhub
 	./../build-tools/publish-version ${VERSION} onosproject/onos-kpimon
+
+jenkins-publish: build-tools jenkins-tools # @HELP Jenkins calls this to publish artifacts
+	../build-tools/release-merge-commit
 
 bumponosdeps: # @HELP update "onosproject" go dependencies and push patch to git. Add a version to dependency to make it different to $VERSION
 	./../build-tools/bump-onos-deps ${VERSION}
