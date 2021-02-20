@@ -60,16 +60,9 @@ protos:
 		--entrypoint build/bin/compile-protos.sh \
 		onosproject/protoc-go:${ONOS_PROTOC_VERSION}
 
-onos-kpimon-base-docker: # @HELP build onos-kpimon base Docker image
-	docker build . -f build/base/Dockerfile \
-		--build-arg ONOS_BUILD_VERSION=${ONOS_BUILD_VERSION} \
-		--build-arg ONOS_MAKE_TARGET=build \
-		-t onosproject/onos-kpimon-base:${ONOS_KPIMON_VERSION}
-
 onos-kpimon-docker: # @HELP build onos-kpimon Docker image
-onos-kpimon-docker: onos-kpimon-base-docker
+onos-kpimon-docker:
 	docker build . -f build/onos-kpimon/Dockerfile \
-		--build-arg ONOS_KPIMON_BASE_VERSION=${ONOS_KPIMON_VERSION} \
 		-t onosproject/onos-kpimon:${ONOS_KPIMON_VERSION}
 
 images: # @HELP build all Docker images

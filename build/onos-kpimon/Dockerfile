@@ -1,12 +1,23 @@
-ARG ONOS_KPIMON_BASE_VERSION=latest
+ARG ONOS_BUILD_VERSION=undefined
 
-FROM onosproject/onos-kpimon-base:$ONOS_KPIMON_BASE_VERSION as base
+FROM onosproject/golang-build:v0.6.7 as build
+
+ENV GO111MODULE=on
+ARG ONOS_MAKE_TARGET=build
+
+COPY Makefile go.mod go.sum /go/src/github.com/onosproject/onos-kpimon/
+COPY cmd/ /go/src/github.com/onosproject/onos-kpimon/cmd/
+COPY pkg/ /go/src/github.com/onosproject/onos-kpimon/pkg/
+COPY vendor/ /go/src/github.com/onosproject/onos-kpimon/vendor/
+COPY api/ /go/src/github.com/onosproject/onos-kpimon/api
+
+RUN cd /go/src/github.com/onosproject/onos-kpimon && GOFLAGS=-mod=vendor make ${ONOS_MAKE_TARGET}
 
 FROM alpine:3.11
 RUN apk add libc6-compat
 
 USER nobody
 
-COPY --from=base /go/src/github.com/onosproject/onos-kpimon/build/_output/onos-kpimon /usr/local/bin/onos-kpimon
+COPY --from=build /go/src/github.com/onosproject/onos-kpimon/build/_output/onos-kpimon /usr/local/bin/onos-kpimon
 
 ENTRYPOINT ["onos-kpimon"]
