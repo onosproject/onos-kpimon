@@ -26,6 +26,8 @@ github.com/envoyproxy/protoc-gen-validate/validate
 github.com/ericchiang/oidc
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
+# github.com/goccmack/goutil v1.2.1
+## explicit
 # github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
@@ -41,6 +43,8 @@ github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.2
 github.com/golang/snappy
+# github.com/google/gnxi v0.0.0-20201130113533-3b2d93b83a53
+## explicit
 # github.com/google/uuid v1.1.2
 github.com/google/uuid
 # github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
@@ -75,7 +79,9 @@ github.com/magiconair/properties
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.3.3
 github.com/mitchellh/mapstructure
-# github.com/onosproject/onos-api/go v0.7.0
+# github.com/onosproject/config-models/modelplugin/ric-1.0.0 v0.0.0-20201206002829-0f3b7ebb025b
+## explicit
+# github.com/onosproject/onos-api/go v0.7.6
 ## explicit
 github.com/onosproject/onos-api/go/onos/e2sub/endpoint
 github.com/onosproject/onos-api/go/onos/e2sub/subscription
@@ -83,18 +89,18 @@ github.com/onosproject/onos-api/go/onos/e2sub/task
 github.com/onosproject/onos-api/go/onos/e2t/admin
 github.com/onosproject/onos-api/go/onos/e2t/e2
 github.com/onosproject/onos-api/go/onos/kpimon
-# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.6.8
+# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.6
 ## explicit
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies
-# github.com/onosproject/onos-e2t v0.6.14
+# github.com/onosproject/onos-e2t v0.7.5
 ## explicit
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2ap-commondatatypes
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2ap-constants
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2apies
 github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types
-# github.com/onosproject/onos-lib-go v0.7.0
+# github.com/onosproject/onos-lib-go v0.7.3
 ## explicit
 github.com/onosproject/onos-lib-go/api/logging
 github.com/onosproject/onos-lib-go/pkg/auth
@@ -105,7 +111,7 @@ github.com/onosproject/onos-lib-go/pkg/logging
 github.com/onosproject/onos-lib-go/pkg/logging/service
 github.com/onosproject/onos-lib-go/pkg/northbound
 github.com/onosproject/onos-lib-go/pkg/southbound
-# github.com/onosproject/onos-ric-sdk-go v0.7.4
+# github.com/onosproject/onos-ric-sdk-go v0.7.10
 ## explicit
 github.com/onosproject/onos-ric-sdk-go/pkg/app
 github.com/onosproject/onos-ric-sdk-go/pkg/config/agent
@@ -155,7 +161,7 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.7.1
 github.com/spf13/viper
-# github.com/stretchr/testify v1.6.1
+# github.com/stretchr/testify v1.7.0
 ## explicit
 github.com/stretchr/testify/assert
 # github.com/subosito/gotenv v1.2.0

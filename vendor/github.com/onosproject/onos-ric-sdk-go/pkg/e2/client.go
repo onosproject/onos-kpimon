@@ -7,6 +7,9 @@ package e2
 import (
 	"context"
 	"fmt"
+	"sync"
+
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/encoding"
 
@@ -37,6 +40,8 @@ type Config struct {
 	InstanceID app.InstanceID
 	// SubscriptionService is the subscription service configuration
 	SubscriptionService ServiceConfig
+	// E2TService is the E2 termination service configuration
+	E2TService ServiceConfig
 }
 
 // ServiceConfig is an E2 service configuration
@@ -70,6 +75,9 @@ type Client interface {
 	// If the subscription is successful, a subscription.Context will be returned. The subscription
 	// context can be used to cancel the subscription by calling Close() on the subscription.Context.
 	Subscribe(ctx context.Context, details subapi.SubscriptionDetails, ch chan<- indication.Indication) (subscription.Context, error)
+
+	// Control creates and sends a E2 control request and recevies a control response.
+	Control(ctx context.Context, request *e2tapi.ControlRequest) (*e2tapi.ControlResponse, error)
 }
 
 // NewClient creates a new E2 client
@@ -80,22 +88,36 @@ func NewClient(config Config) (Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	e2tConn, err := conns.Connect(fmt.Sprintf("%s:%d", config.E2TService.GetHost(), config.E2TService.GetPort()))
+	if err != nil {
+		return nil, err
+	}
 	return &e2Client{
-		config:     config,
-		epClient:   endpoint.NewClient(subConn),
-		subClient:  subscription.NewClient(subConn),
-		taskClient: subscriptiontask.NewClient(subConn),
-		conns:      conns,
+		config:            config,
+		epClient:          endpoint.NewClient(subConn),
+		subClient:         subscription.NewClient(subConn),
+		taskClient:        subscriptiontask.NewClient(subConn),
+		terminationClient: termination.NewClient(e2tConn),
+		conns:             conns,
 	}, nil
 }
 
 // e2Client is the default E2 client implementation
 type e2Client struct {
-	config     Config
-	epClient   endpoint.Client
-	subClient  subscription.Client
-	taskClient subscriptiontask.Client
-	conns      *connection.Manager
+	config            Config
+	epClient          endpoint.Client
+	subClient         subscription.Client
+	taskClient        subscriptiontask.Client
+	terminationClient termination.Client
+	conns             *connection.Manager
+}
+
+func (c *e2Client) Control(ctx context.Context, request *e2tapi.ControlRequest) (*e2tapi.ControlResponse, error) {
+	response, err := c.terminationClient.Control(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 func (c *e2Client) Subscribe(ctx context.Context, details subapi.SubscriptionDetails, ch chan<- indication.Indication) (subscription.Context, error) {
@@ -113,6 +135,7 @@ func (c *e2Client) Subscribe(ctx context.Context, details subapi.SubscriptionDet
 	client := &subContext{
 		e2Client: c,
 		sub:      sub,
+		errCh:    make(chan error),
 	}
 	err = client.subscribe(ctx, ch)
 	if err != nil {
@@ -128,7 +151,16 @@ func (c *e2Client) Subscribe(ctx context.Context, details subapi.SubscriptionDet
 type subContext struct {
 	*e2Client
 	sub    *subapi.Subscription
+	errCh  chan error
 	cancel context.CancelFunc
+}
+
+func (c *subContext) ID() subapi.ID {
+	return c.sub.ID
+}
+
+func (c *subContext) Err() <-chan error {
+	return c.errCh
 }
 
 // subscribe activates the subscription context
@@ -154,7 +186,7 @@ func (c *subContext) subscribe(ctx context.Context, indCh chan<- indication.Indi
 	}
 
 	// The subscription is considered activated, and task events are processed in a separate goroutine.
-	go c.processTaskEvents(watchCh, indCh)
+	go c.processTaskEvents(watchCtx, watchCh, indCh)
 	return nil
 }
 
@@ -162,10 +194,22 @@ func (c *subContext) subscribe(ctx context.Context, indCh chan<- indication.Indi
 // When a task associated with this subscription is created, connect to the associated E2 termination
 // and open a stream for indications. When the task is reassigned to a new termination point, clean
 // up the prior stream and open a new stream to the new E2 termination point.
-func (c *subContext) processTaskEvents(eventCh <-chan subtaskapi.Event, indCh chan<- indication.Indication) {
-	// After the context is closed and the associated Watch call is canceled, the eventCh will be closed.
-	// The indications channel is closed to indicate the subscription has been cleaned up.
-	defer close(indCh)
+func (c *subContext) processTaskEvents(ctx context.Context, eventCh <-chan subtaskapi.Event, indCh chan<- indication.Indication) {
+	// Create a wait group to close the indications channel
+	wg := &sync.WaitGroup{}
+
+	// Wait for the watch context to be done
+	wg.Add(1)
+	go func() {
+		<-ctx.Done()
+		wg.Done()
+	}()
+
+	// Once the wait group is complete, close the indications channel
+	go func() {
+		wg.Wait()
+		close(indCh)
+	}()
 
 	var prevCancel context.CancelFunc
 	var prevEndpoint epapi.ID
@@ -176,8 +220,13 @@ func (c *subContext) processTaskEvents(eventCh <-chan subtaskapi.Event, indCh ch
 		}
 
 		// If the stream is already open for the associated E2 endpoint, skip the event
-		if event.Task.EndpointID == prevEndpoint {
+		if event.Task.EndpointID == prevEndpoint && event.Task.Lifecycle.Failure == nil {
 			continue
+		}
+
+		// If the task failed, propagate the error
+		if event.Task.Lifecycle.Failure != nil {
+			c.errCh <- errors.NewInternal(event.Task.Lifecycle.Failure.Message)
 		}
 
 		// If the task was assigned to a new endpoint, close the prior stream and open a new one.
@@ -186,8 +235,10 @@ func (c *subContext) processTaskEvents(eventCh <-chan subtaskapi.Event, indCh ch
 			if prevCancel != nil {
 				prevCancel()
 			}
+			wg.Add(1)
 			ctx, cancel := context.WithCancel(context.Background())
 			go func(epID epapi.ID) {
+				defer wg.Done()
 				defer cancel()
 				err := c.openStream(ctx, epID, indCh)
 				if err != nil {
@@ -239,7 +290,7 @@ func (c *subContext) openStream(ctx context.Context, epID epapi.ID, indCh chan<-
 		indCh <- indication.Indication{
 			EncodingType: encoding.Type(response.Header.EncodingType),
 			Payload: indication.Payload{
-				Header:  response.Header.IndicationHeader,
+				Header:  response.IndicationHeader,
 				Message: response.IndicationMessage,
 			},
 		}
