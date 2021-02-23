@@ -24,6 +24,7 @@ import (
 	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+	sdkSub "github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -58,6 +59,8 @@ const serviceModelID = "e2sm_kpm-v1beta1"
 // E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
 type E2Session struct {
 	E2SubEndpoint  string
+	E2SubInstance  sdkSub.Context
+	SubDelTrigger  chan bool
 	E2TEndpoint    string
 	RicActionID    types.RicActionID
 	ReportPeriodMs uint64
@@ -84,8 +87,8 @@ func (s *E2Session) Run(indChan chan indication.Indication, adminSession *admin.
 	go func() {
 		_ = s.watchConfigChanges()
 	}()
+	s.SubDelTrigger = make(chan bool)
 	s.manageConnections(indChan, adminSession)
-
 }
 
 func (s *E2Session) updateReportPeriod(event event.Event) error {
@@ -106,8 +109,12 @@ func (s *E2Session) updateReportPeriod(event event.Event) error {
 func (s *E2Session) processConfigEvents() {
 	for configEvent := range s.configEventCh {
 		if configEvent.Key == utils.ReportPeriodConfigPath {
-			log.Debug("Config Event received:", configEvent)
+			log.Debug("Report Period: Config Event received:", configEvent)
 			err := s.updateReportPeriod(configEvent)
+			if err != nil {
+				log.Error(err)
+			}
+			err = s.deleteSuscription()
 			if err != nil {
 				log.Error(err)
 			}
@@ -234,16 +241,31 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 		return err
 	}
 
-	_, err = client.Subscribe(ctx, subReq, ch)
+	s.E2SubInstance, err = client.Subscribe(ctx, subReq, ch)
 	if err != nil {
 		log.Error("Can't send SubscriptionRequest message")
 		return err
 	}
 
 	log.Infof("Start forwarding Indication message to KPIMON controller")
-	for indMsg := range ch {
-		indChan <- indMsg
+	for {
+		select {
+		case indMsg := <-ch:
+			indChan <- indMsg
+		case trigger := <-s.SubDelTrigger:
+			if trigger {
+				log.Info("Reset indChan to close subscription")
+				return nil
+			}
+		}
 	}
+}
 
-	return nil
+func (s *E2Session) deleteSuscription() error {
+	err := s.E2SubInstance.Close()
+	if err != nil {
+		log.Error(err)
+	}
+	s.SubDelTrigger <- true
+	return err
 }
