@@ -16,7 +16,6 @@ import (
 	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
 
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
-	sdkSub "github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
@@ -25,6 +24,7 @@ import (
 	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+	sdkSub "github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -60,7 +60,7 @@ const serviceModelID = "e2sm_kpm-v1beta1"
 type E2Session struct {
 	E2SubEndpoint  string
 	E2SubInstance  sdkSub.Context
-	SubDelTrigger  chan(bool)
+	SubDelTrigger  chan bool
 	E2TEndpoint    string
 	RicActionID    types.RicActionID
 	ReportPeriodMs uint64
@@ -249,10 +249,10 @@ func (s *E2Session) subscribeE2T(indChan chan indication.Indication, nodeIDs []s
 
 	log.Infof("Start forwarding Indication message to KPIMON controller")
 	for {
-		select{
-		case indMsg := <- ch:
+		select {
+		case indMsg := <-ch:
 			indChan <- indMsg
-		case trigger := <- s.SubDelTrigger:
+		case trigger := <-s.SubDelTrigger:
 			if trigger {
 				log.Info("Reset indChan to close subscription")
 				return nil
