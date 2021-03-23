@@ -16,7 +16,7 @@ import (
 	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
 
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
-	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
+	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/pdubuilder"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -54,7 +54,7 @@ var periodRanges = utils.PeriodRanges{
 	{Min: 5121, Max: math.MaxInt64, Value: 19},
 }
 
-const serviceModelID = "e2sm_kpm-v1beta1"
+const serviceModelID = "e2sm_kpm_v2-v2"
 
 // E2Session is responsible for mapping connections to and interactions with the northbound of ONOS-E2T
 type E2Session struct {
@@ -161,7 +161,7 @@ func (s *E2Session) createEventTriggerData() []byte {
 
 	rtPeriod := periodRanges.Search(int(s.ReportPeriodMs))
 	log.Infof("Received period value: %v, Set the period to: %v", s.ReportPeriodMs, rtPeriod)
-	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(int32(rtPeriod))
+	e2SmKpmEventTriggerDefinition, err := pdubuilder.CreateE2SmKpmEventTriggerDefinition(rtPeriod)
 	if err != nil {
 		log.Errorf("Failed to create event trigger definition data: %v", err)
 		return []byte{}

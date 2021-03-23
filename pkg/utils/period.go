@@ -6,8 +6,6 @@ package utils
 
 import (
 	"sort"
-
-	e2smkpmies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
 )
 
 const (
@@ -17,9 +15,10 @@ const (
 
 // PeriodRange is a tuple of min and max value for each RT Period IE value
 type PeriodRange struct {
-	Min   int
-	Max   int
-	Value e2smkpmies.RtPeriodIe
+	Min int
+	Max int
+	//Value e2smkpmies.RtPeriodIe
+	Value int32
 }
 
 // PeriodRanges is a set type of PeriodRange
@@ -38,7 +37,7 @@ func (r PeriodRanges) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 func (r PeriodRanges) Sort() { sort.Sort(r) }
 
 // Search is the function to search a value in period range
-func (r PeriodRanges) Search(v int) e2smkpmies.RtPeriodIe {
+func (r PeriodRanges) Search(v int) int32 {
 	rangesLength := r.Len()
 	if i := sort.Search(rangesLength, func(i int) bool { return v <= r[i].Max }); i < rangesLength {
 		if it := &r[i]; v >= it.Min && v <= it.Max {

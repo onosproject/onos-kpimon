@@ -7,7 +7,8 @@ require (
 	github.com/google/gnxi v0.0.0-20201130113533-3b2d93b83a53 // indirect
 	github.com/onosproject/config-models/modelplugin/ric-1.0.0 v0.0.0-20201206002829-0f3b7ebb025b // indirect
 	github.com/onosproject/onos-api/go v0.7.6
-	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.6
+	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.6 // indirect
+	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.15
 	github.com/onosproject/onos-e2t v0.7.5
 	github.com/onosproject/onos-lib-go v0.7.3
 	github.com/onosproject/onos-ric-sdk-go v0.7.10

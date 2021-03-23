@@ -6,7 +6,7 @@ package controller
 
 import (
 	"fmt"
-	e2sm_kpm_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
+	e2sm_kpm_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
@@ -65,20 +65,20 @@ func (c *KpiMonCtrl) listenIndChan() {
 		log.Debugf("E2SMKPM Ind Header: %v", indHeader.GetE2SmKpmIndicationHeader())
 
 		if c.hasENbID(indHeader.GetIndicationHeaderFormat1()) {
-			log.Debugf("eNB field: %v", indHeader.GetIndicationHeaderFormat1().GetIdGlobalKpmnodeId().GetENb().String())
+			log.Debugf("eNB field: %v", indHeader.GetIndicationHeaderFormat1().GetKpmNodeId().GetENb().String())
 			plmnID, nodeID, _ = c.parseHeaderENbID(indHeader.GetIndicationHeaderFormat1())
 
 			log.Debugf("PLMNID: %v", plmnID)
 			log.Debugf("eNBID: %v", nodeID)
 		} else if c.hasGNbID(indHeader.GetIndicationHeaderFormat1()) {
-			log.Debugf("gNB field: %v", indHeader.GetIndicationHeaderFormat1().GetIdGlobalKpmnodeId().GetGNb().String())
+			log.Debugf("gNB field: %v", indHeader.GetIndicationHeaderFormat1().GetKpmNodeId().GetGNb().String())
 			plmnID, nodeID, _ = c.parseHeaserGNbID(indHeader.GetIndicationHeaderFormat1())
 
 			log.Debugf("PLMNID: %v", plmnID)
 			log.Debugf("gNBID: %v", nodeID)
 		} else {
 			// TODO: have to support other types of ID for the future
-			log.Errorf("The message header %v does not support yet. As of now, KPIMON supports both eNB and gNB ID type", indHeader.GetIndicationHeaderFormat1().GetIdGlobalKpmnodeId())
+			log.Errorf("The message header %v does not support yet. As of now, KPIMON supports both eNB and gNB ID type", indHeader.GetIndicationHeaderFormat1().GetKpmNodeId())
 		}
 
 		indMessage := e2sm_kpm_ies.E2SmKpmIndicationMessage{}
@@ -91,50 +91,50 @@ func (c *KpiMonCtrl) listenIndChan() {
 		log.Debugf("ind Msgs: %v", indMessage.GetIndicationMessageFormat1())
 		log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
 
-		// allow pmContainers array being empty
-		if len(indMessage.GetIndicationMessageFormat1().GetPmContainers()) == 0 {
-			log.Warnf("PmContainers array field in indication message is empty")
-			continue
-		}
+		//// allow pmContainers array being empty
+		//if len(indMessage.GetIndicationMessageFormat1().GetPmContainers()) == 0 {
+		//	log.Warnf("PmContainers array field in indication message is empty")
+		//	continue
+		//}
 
-		log.Debugf("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
-		log.Debugf("CUCP Name: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue())
+		//log.Debugf("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
+		//log.Debugf("CUCP Name: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue())
 
-		c.KpiMonMutex.Lock()
-		c.updateKpiMonResults(plmnID, nodeID,
-			indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue(),
-			indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
-		c.KpiMonMutex.Unlock()
+		//c.KpiMonMutex.Lock()
+		//c.updateKpiMonResults(plmnID, nodeID,
+		//	indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetGNbCuCpName().GetValue(),
+		//	indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
+		//c.KpiMonMutex.Unlock()
 	}
 }
 
 func (c *KpiMonCtrl) parseHeaderENbID(header *e2sm_kpm_ies.E2SmKpmIndicationHeaderFormat1) (string, string, error) {
 	var plmnID, enbID string
 
-	plmnID = fmt.Sprintf("%d", (*header).GetIdGlobalKpmnodeId().GetENb().GetGlobalENbId().GetPLmnIdentity().Value)
-	enbID = fmt.Sprintf("%d", (*header).GetIdGlobalKpmnodeId().GetENb().GetGlobalENbId().GetENbId().GetMacroENbId().Value)
+	plmnID = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetPLmnIdentity().Value)
+	enbID = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetENbId().GetMacroENbId().Value)
 	return plmnID, enbID, nil
 }
 
 func (c *KpiMonCtrl) parseHeaserGNbID(header *e2sm_kpm_ies.E2SmKpmIndicationHeaderFormat1) (string, string, error) {
 	var plmnID, gnbID string
 
-	plmnID = fmt.Sprintf("%d", (*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetPlmnId().Value)
-	gnbID = fmt.Sprintf("%d", (*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetGnbId().GetGnbId().Value)
+	plmnID = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetPlmnId().Value)
+	gnbID = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetGnbId().GetGnbId().Value)
 
 	return plmnID, gnbID, nil
 }
 
 func (c *KpiMonCtrl) hasENbID(header *e2sm_kpm_ies.E2SmKpmIndicationHeaderFormat1) bool {
-	return header.GetIdGlobalKpmnodeId().GetENb() != nil
+	return header.GetKpmNodeId().GetENb() != nil
 }
 
 func (c *KpiMonCtrl) hasGNbID(header *e2sm_kpm_ies.E2SmKpmIndicationHeaderFormat1) bool {
-	return header.GetIdGlobalKpmnodeId().GetGNb() != nil
+	return header.GetKpmNodeId().GetGNb() != nil
 }
 
-func (c *KpiMonCtrl) updateKpiMonResults(plmnID string, nodeID string, cucpName string, numActiveUEs int32) {
-	c.KpiMonResults[CellIdentity{CuCpName: cucpName, PlmnID: plmnID, NodeID: nodeID}] = numActiveUEs
-
-	log.Infof("KpiMonResults: %v", c.KpiMonResults)
-}
+//func (c *KpiMonCtrl) updateKpiMonResults(plmnID string, nodeID string, cucpName string, numActiveUEs int32) {
+//	c.KpiMonResults[CellIdentity{CuCpName: cucpName, PlmnID: plmnID, NodeID: nodeID}] = numActiveUEs
+//
+//	log.Infof("KpiMonResults: %v", c.KpiMonResults)
+//}
