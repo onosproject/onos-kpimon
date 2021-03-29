@@ -5,35 +5,41 @@
 package admin
 
 import (
-	"context"
-	adminapi "github.com/onosproject/onos-api/go/onos/e2t/admin"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	adminapi "github.com/onosproject/onos-api/go/onos/e2t/admin"
 	"github.com/onosproject/onos-lib-go/pkg/southbound"
 	"google.golang.org/grpc"
 	"io"
 	"time"
+	"context"
 )
 
-var log = logging.GetLogger("sb-admin")
+var log = logging.GetLogger("southbound", "admin")
 
 // E2AdminSession is responsible for mapping connections to and interactions with the northbound admin API of ONOS-E2T
-type E2AdminSession struct {
+type E2AdminSession interface {
+	GetListE2NodeIDs() ([]string, error)
+	ConnectionHandler() (adminapi.E2TAdminServiceClient, error)
+}
+
+type E2AdminSessionData struct {
+	E2AdminSession
 	E2TEndpoint string
 }
 
-// NewSession creates a new admin southbound session of ONOS-KPIMON
-func NewSession(e2tEndpoint string) *E2AdminSession {
-	log.Info("Creating RicAPIAdminSession")
-	return &E2AdminSession{
+func NewE2AdminSession(e2tEndpoint string) E2AdminSession {
+	var e2AdminSession E2AdminSession
+	log.Info("Creating E2Admin session")
+	e2AdminSession = &E2AdminSessionData{
 		E2TEndpoint: e2tEndpoint,
 	}
+	return e2AdminSession
 }
 
-// GetListE2NodeIDs returns the list of E2NodeIDs which are connected to ONOS-RIC
-func (s *E2AdminSession) GetListE2NodeIDs() ([]string, error) {
+func (s *E2AdminSessionData) GetListE2NodeIDs() ([]string, error) {
 	var nodeIDs []string
 
-	adminClient, err := s.connectionHandler()
+	adminClient, err := s.ConnectionHandler()
 	if err != nil {
 		return []string{}, err
 	}
@@ -59,7 +65,7 @@ func (s *E2AdminSession) GetListE2NodeIDs() ([]string, error) {
 	return nodeIDs, nil
 }
 
-func (s *E2AdminSession) connectionHandler() (adminapi.E2TAdminServiceClient, error) {
+func (s *E2AdminSessionData) ConnectionHandler() (adminapi.E2TAdminServiceClient, error) {
 	log.Infof("Connecting to ONOS-E2T ... %s", s.E2TEndpoint)
 
 	opts := []grpc.DialOption{
@@ -76,5 +82,5 @@ func (s *E2AdminSession) connectionHandler() (adminapi.E2TAdminServiceClient, er
 
 	adminClient := adminapi.NewE2TAdminServiceClient(conn)
 	return adminClient, nil
-
 }
+
