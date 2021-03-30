@@ -6,15 +6,14 @@ package northbound
 
 import (
 	"context"
-	"fmt"
 	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
 	"github.com/onosproject/onos-kpimon/pkg/controller"
-	service "github.com/onosproject/onos-lib-go/pkg/northbound"
+	"github.com/onosproject/onos-lib-go/pkg/logging/service"
 	"google.golang.org/grpc"
 )
 
 // NewService returns a new KPIMON interface service.
-func NewService(ctrl *controller.KpiMonCtrl) service.Service {
+func NewService(ctrl controller.KpiMonController) service.Service {
 	return &Service{
 		Ctrl: ctrl,
 	}
@@ -23,7 +22,7 @@ func NewService(ctrl *controller.KpiMonCtrl) service.Service {
 // Service is a service implementation for administration.
 type Service struct {
 	service.Service
-	Ctrl *controller.KpiMonCtrl
+	Ctrl controller.KpiMonController
 }
 
 // Register registers the Service with the gRPC server.
@@ -36,28 +35,10 @@ func (s Service) Register(r *grpc.Server) {
 
 // Server implements the KPIMON gRPC service for administrative facilities.
 type Server struct {
-	Ctrl *controller.KpiMonCtrl
+	Ctrl controller.KpiMonController
 }
 
-// GetNumActiveUEs returns how many UEs are acctive
+// GetNumActiveUEs returns how many UEs are active
 func (s Server) GetNumActiveUEs(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
-
-	numActiveUEs := make(map[string]uint64)
-
-	s.Ctrl.KpiMonMutex.RLock()
-	for k, v := range s.Ctrl.KpiMonResults {
-		id := fmt.Sprintf("%s", k)
-		numActiveUEs[id] = uint64(v)
-	}
-	s.Ctrl.KpiMonMutex.RUnlock()
-
-	response := &kpimonapi.GetResponse{
-		Object: &kpimonapi.Object{
-			Id:         "kpimon",
-			Revision:   0,
-			Attributes: numActiveUEs,
-		},
-	}
-
-	return response, nil
+	return nil, nil
 }

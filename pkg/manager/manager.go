@@ -30,41 +30,46 @@ type Config struct {
 	GRPCPort      int
 	AppConfig     *app.Config
 	RicActionID   int32
+	SMName        string
+	SMVersion     string
 }
 
-// NewManager creates a new manager
-func NewManager(config Config) *Manager {
-	log.Info("Creating Manager")
-	indCh := make(chan indication.Indication)
-
-	return &Manager{
-		Config: config,
-		Sessions: SBSessions{
-			AdminSession: admin.NewSession(config.E2tEndpoint),
-			E2Session:    ricapie2.NewSession(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, 0),
-		},
-		Chans: Channels{
-			IndCh: indCh, // Connection between KPIMON core and Southbound
-		},
-		Ctrls: Controllers{
-			KpiMonCtrl: controller.NewKpiMonController(indCh),
-		},
+// NewManager generates the new KPIMON xAPP manager
+func NewManager(config Config) Manager {
+	var manager Manager
+	if config.SMVersion == "v1" {
+		manager = newV1Manager(config)
+	} else if config.SMVersion == "v2" {
+		manager = newV2Manager(config)
+	} else {
+		log.Fatal("The received service model version %s is not valid - it must be v1 or v2", config.SMVersion)
 	}
+	return manager
 }
 
-// Manager is a manager for the KPIMON service
-type Manager struct {
-	Config      Config
-	Sessions    SBSessions
-	Chans       Channels
-	Ctrls       Controllers
-	PeriodRange utils.PeriodRanges
+// Manager is an interface of KPIMON manager
+type Manager interface {
+	Run()
+	Close()
+	start() error
+	registerConfigurable() error
+	startNorthboundServer() error
+	getReportPeriod() (uint64, error)
+}
+
+// AbstractManager is an abstract struct for manager
+type AbstractManager struct {
+	Manager
+	Config   Config
+	Sessions SBSessions
+	Chans    Channels
+	Ctrls    Controllers
 }
 
 // SBSessions is a set of Southbound sessions
 type SBSessions struct {
-	E2Session    *ricapie2.E2Session
-	AdminSession *admin.E2AdminSession
+	E2Session    ricapie2.E2Session
+	AdminSession admin.E2AdminSession
 }
 
 // Channels is a set of channels
@@ -74,53 +79,49 @@ type Channels struct {
 
 // Controllers is a set of controllers
 type Controllers struct {
-	KpiMonCtrl *controller.KpiMonCtrl
+	KpiMonController controller.KpiMonController
 }
 
-// Run starts the manager and the associated services
-func (m *Manager) Run() {
-	log.Info("Running Manager")
-	if err := m.Start(); err != nil {
-		log.Fatal("Unable to run Manager", err)
+// Run runs KPIMON manager
+func (m *AbstractManager) Run() {
+	err := m.start()
+	if err != nil {
+		log.Errorf("Error when starting KPIMON: %v", err)
 	}
 }
 
-// Start starts the manager
-func (m *Manager) Start() error {
+// Close closes manager
+func (m *AbstractManager) Close() {
+	log.Info("closing Manager")
+}
 
-	// Start Northbound server
+func (m *AbstractManager) start() error {
 	err := m.startNorthboundServer()
 	if err != nil {
 		return err
 	}
 
-	// Register the xApp as configurable entity
 	err = m.registerConfigurable()
 	if err != nil {
 		log.Error("Failed to register the app as a configurable entity", err)
 		return err
 	}
 
-	// Start Southbound client to watch indication messages
-	m.Sessions.E2Session.ReportPeriodMs, err = m.getReportPeriod()
-	m.Sessions.E2Session.AppConfig = m.Config.AppConfig
+	period, err := m.getReportPeriod()
 	if err != nil {
-		log.Errorf("Failed to get report period so period is set to 0ms: %v", err)
+		log.Errorf("Failed to get report period so period is set to 30ms: %v", err)
+		period = 30
 	}
+	m.Sessions.E2Session.SetReportPeriodMs(period)
+	m.Sessions.E2Session.SetAppConfig(m.Config.AppConfig)
 
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
-	go m.Ctrls.KpiMonCtrl.Run()
+	go m.Ctrls.KpiMonController.Run()
 
 	return nil
 }
 
-// Close kills the channels and manager related objects
-func (m *Manager) Close() {
-	log.Info("Closing Manager")
-}
-
-// registerConfigurable registers the xApp as a configurable entity
-func (m *Manager) registerConfigurable() error {
+func (m *AbstractManager) registerConfigurable() error {
 	appConfig, err := configurable.RegisterConfigurable(&configurable.RegisterRequest{})
 	if err != nil {
 		return err
@@ -129,7 +130,7 @@ func (m *Manager) registerConfigurable() error {
 	return nil
 }
 
-func (m *Manager) startNorthboundServer() error {
+func (m *AbstractManager) startNorthboundServer() error {
 	s := northbound.NewServer(northbound.NewServerCfg(
 		m.Config.CAPath,
 		m.Config.KeyPath,
@@ -138,7 +139,7 @@ func (m *Manager) startNorthboundServer() error {
 		true,
 		northbound.SecurityConfig{}))
 
-	s.AddService(nbi.NewService(m.Ctrls.KpiMonCtrl))
+	s.AddService(nbi.NewService(m.Ctrls.KpiMonController))
 
 	doneCh := make(chan error)
 	go func() {
@@ -153,7 +154,7 @@ func (m *Manager) startNorthboundServer() error {
 	return <-doneCh
 }
 
-func (m *Manager) getReportPeriod() (uint64, error) {
+func (m *AbstractManager) getReportPeriod() (uint64, error) {
 	interval, _ := m.Config.AppConfig.Get(utils.ReportPeriodConfigPath)
 	val, err := configutils.ToUint64(interval.Value)
 	if err != nil {

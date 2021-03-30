@@ -20,21 +20,21 @@ github.com/eapache/go-resiliency/breaker
 github.com/eapache/go-xerial-snappy
 # github.com/eapache/queue v1.1.0
 github.com/eapache/queue
-# github.com/envoyproxy/protoc-gen-validate v0.4.1
+# github.com/envoyproxy/protoc-gen-validate v0.5.0
+## explicit
 github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/ericchiang/oidc v0.0.0-20160908143337-11f62933e071
 github.com/ericchiang/oidc
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/goccmack/goutil v1.2.1
-## explicit
 # github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/mock v1.4.4
 github.com/golang/mock/gomock
-# github.com/golang/protobuf v1.4.3
+# github.com/golang/protobuf v1.5.0
+## explicit
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
@@ -43,8 +43,6 @@ github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.2
 github.com/golang/snappy
-# github.com/google/gnxi v0.0.0-20201130113533-3b2d93b83a53
-## explicit
 # github.com/google/uuid v1.1.2
 github.com/google/uuid
 # github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
@@ -79,9 +77,7 @@ github.com/magiconair/properties
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.3.3
 github.com/mitchellh/mapstructure
-# github.com/onosproject/config-models/modelplugin/ric-1.0.0 v0.0.0-20201206002829-0f3b7ebb025b
-## explicit
-# github.com/onosproject/onos-api/go v0.7.6
+# github.com/onosproject/onos-api/go v0.7.21
 ## explicit
 github.com/onosproject/onos-api/go/onos/e2sub/endpoint
 github.com/onosproject/onos-api/go/onos/e2sub/subscription
@@ -89,18 +85,22 @@ github.com/onosproject/onos-api/go/onos/e2sub/task
 github.com/onosproject/onos-api/go/onos/e2t/admin
 github.com/onosproject/onos-api/go/onos/e2t/e2
 github.com/onosproject/onos-api/go/onos/kpimon
-# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.6
+# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.19
 ## explicit
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies
-# github.com/onosproject/onos-e2t v0.7.5
+# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.19
+## explicit
+github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/pdubuilder
+github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2
+# github.com/onosproject/onos-e2t v0.7.13
 ## explicit
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2ap-commondatatypes
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2ap-constants
 github.com/onosproject/onos-e2t/api/e2ap/v1beta1/e2apies
 github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types
-# github.com/onosproject/onos-lib-go v0.7.3
+# github.com/onosproject/onos-lib-go v0.7.7
 ## explicit
 github.com/onosproject/onos-lib-go/api/logging
 github.com/onosproject/onos-lib-go/pkg/auth
@@ -111,7 +111,7 @@ github.com/onosproject/onos-lib-go/pkg/logging
 github.com/onosproject/onos-lib-go/pkg/logging/service
 github.com/onosproject/onos-lib-go/pkg/northbound
 github.com/onosproject/onos-lib-go/pkg/southbound
-# github.com/onosproject/onos-ric-sdk-go v0.7.10
+# github.com/onosproject/onos-ric-sdk-go v0.7.11
 ## explicit
 github.com/onosproject/onos-ric-sdk-go/pkg/app
 github.com/onosproject/onos-ric-sdk-go/pkg/config/agent
@@ -133,7 +133,6 @@ github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscriptiontask
 github.com/onosproject/onos-ric-sdk-go/pkg/e2/termination
 # github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802
-## explicit
 github.com/openconfig/gnmi/proto/gnmi
 github.com/openconfig/gnmi/proto/gnmi_ext
 # github.com/pelletier/go-toml v1.8.1
@@ -153,8 +152,6 @@ github.com/spf13/afero
 github.com/spf13/afero/mem
 # github.com/spf13/cast v1.3.1
 github.com/spf13/cast
-# github.com/spf13/cobra v1.1.1
-## explicit
 # github.com/spf13/jwalterweatherman v1.1.0
 github.com/spf13/jwalterweatherman
 # github.com/spf13/pflag v1.0.5
@@ -289,7 +286,7 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.25.0
+# google.golang.org/protobuf v1.26.0
 ## explicit
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
@@ -301,18 +298,18 @@ google.golang.org/protobuf/internal/encoding/messageset
 google.golang.org/protobuf/internal/encoding/tag
 google.golang.org/protobuf/internal/encoding/text
 google.golang.org/protobuf/internal/errors
-google.golang.org/protobuf/internal/fieldsort
 google.golang.org/protobuf/internal/filedesc
 google.golang.org/protobuf/internal/filetype
 google.golang.org/protobuf/internal/flags
 google.golang.org/protobuf/internal/genid
 google.golang.org/protobuf/internal/impl
-google.golang.org/protobuf/internal/mapsort
+google.golang.org/protobuf/internal/order
 google.golang.org/protobuf/internal/pragma
 google.golang.org/protobuf/internal/set
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/internal/version
 google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protodesc
 google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface

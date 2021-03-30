@@ -22,6 +22,8 @@ func main() {
 	e2subEndpoint := flag.String("e2subEndpoint", "onos-e2sub:5150", "E2Sub service endpoint")
 	ricActionID := flag.Int("ricActionID", 10, "RIC Action ID in E2 message")
 	grpcPort := flag.Int("grpcPort", 5150, "grpc Port number")
+	smName := flag.String("smName", "oran-e2sm-kpm", "Service model name in RAN function description")
+	smVersion := flag.String("smVersion", "v2", "Service model version in RAN function description")
 
 	ready := make(chan bool)
 
@@ -41,6 +43,8 @@ func main() {
 		E2SubEndpoint: *e2subEndpoint,
 		GRPCPort:      *grpcPort,
 		RicActionID:   int32(*ricActionID),
+		SMName:        *smName,
+		SMVersion:     *smVersion,
 	}
 
 	mgr := manager.NewManager(cfg)
