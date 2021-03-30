@@ -5,11 +5,11 @@
 package northbound
 
 import (
+	"context"
+	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
 	"github.com/onosproject/onos-kpimon/pkg/controller"
 	"github.com/onosproject/onos-lib-go/pkg/logging/service"
 	"google.golang.org/grpc"
-	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
-	"context"
 )
 
 // NewService returns a new KPIMON interface service.

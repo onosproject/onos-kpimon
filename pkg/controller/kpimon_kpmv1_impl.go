@@ -14,7 +14,7 @@ import (
 func newV1KpiMonController(indChan chan indication.Indication) *V1KpiMonController {
 	return &V1KpiMonController{
 		AbstractKpiMonController: &AbstractKpiMonController{
-			IndChan: indChan,
+			IndChan:       indChan,
 			KpiMonResults: make(map[KpiMonMetricKey]KpiMonMetricValue),
 		},
 	}
@@ -112,4 +112,3 @@ func (v1 *V1KpiMonController) hasENbID(header *e2sm_kpm_ies.E2SmKpmIndicationHea
 func (v1 *V1KpiMonController) hasGNbID(header *e2sm_kpm_ies.E2SmKpmIndicationHeaderFormat1) bool {
 	return header.GetIdGlobalKpmnodeId().GetGNb() != nil
 }
-

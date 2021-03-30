@@ -12,20 +12,20 @@ import (
 )
 
 const (
-	RRC_ConnEstabAtt_Tot = "RRC.ConnEstabAtt.Tot"
-	RRC_ConnEstabSucc_Tot = "RRC.ConnEstabSucc.Tot"
-	RRC_ConnReEstabAtt_Tot = "RRC.ConnReEstabAtt.Tot"
+	RRC_ConnEstabAtt_Tot            = "RRC.ConnEstabAtt.Tot"
+	RRC_ConnEstabSucc_Tot           = "RRC.ConnEstabSucc.Tot"
+	RRC_ConnReEstabAtt_Tot          = "RRC.ConnReEstabAtt.Tot"
 	RRC_ConnReEstabAtt_reconfigFail = "RRC.ConnReEstabAtt.reconfigFail"
-	RRC_ConnReEstabAtt_HOFail = "RRC.ConnReEstabAtt.HOFail"
-	RRC_ConnReEstabAtt_Other = "RRC.ConnReEstabAtt.Other"
-	RRC_Conn_Avg = "RRC.Conn.Avg"
-	RRC_Conn_Max = "RRC.Conn.Max"
+	RRC_ConnReEstabAtt_HOFail       = "RRC.ConnReEstabAtt.HOFail"
+	RRC_ConnReEstabAtt_Other        = "RRC.ConnReEstabAtt.Other"
+	RRC_Conn_Avg                    = "RRC.Conn.Avg"
+	RRC_Conn_Max                    = "RRC.Conn.Max"
 )
 
 func newV2KpiMonController(indChan chan indication.Indication) *V2KpiMonController {
 	return &V2KpiMonController{
 		AbstractKpiMonController: &AbstractKpiMonController{
-			IndChan: indChan,
+			IndChan:       indChan,
 			KpiMonResults: make(map[KpiMonMetricKey]KpiMonMetricValue),
 		},
 	}

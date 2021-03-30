@@ -20,16 +20,16 @@ import (
 	"time"
 )
 
-func newV2E2Session (e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) *V2E2Session {
+func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) *V2E2Session {
 	log.Info("Creating RICAPI E2Session for KPM v2.0")
 	return &V2E2Session{
 		AbstractE2Session: &AbstractE2Session{
-			E2SubEndpoint: e2subEndpoint,
-			E2TEndpoint: e2tEndpoint,
-			RicActionID: types.RicActionID(ricActionID),
+			E2SubEndpoint:  e2subEndpoint,
+			E2TEndpoint:    e2tEndpoint,
+			RicActionID:    types.RicActionID(ricActionID),
 			ReportPeriodMs: reportPeriodMs,
-			SMName: smName,
-			SMVersion: smVersion,
+			SMName:         smName,
+			SMVersion:      smVersion,
 		},
 	}
 }
@@ -85,7 +85,7 @@ func (s *V2E2Session) createSubscriptionRequest(nodeID string) (subscription.Sub
 	sub := subscription.SubscriptionDetails{
 		E2NodeID: subscription.E2NodeID(nodeID),
 		ServiceModel: subscription.ServiceModel{
-			Name: subscription.ServiceModelName(s.SMName),
+			Name:    subscription.ServiceModelName(s.SMName),
 			Version: subscription.ServiceModelVersion(s.SMVersion),
 		},
 		EventTrigger: subscription.EventTrigger{

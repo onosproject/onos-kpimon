@@ -6,12 +6,12 @@ package manager
 
 import (
 	"github.com/onosproject/onos-kpimon/pkg/controller"
+	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
 	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
 	configurable "github.com/onosproject/onos-ric-sdk-go/pkg/config/registry"
 	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
@@ -30,8 +30,8 @@ type Config struct {
 	GRPCPort      int
 	AppConfig     *app.Config
 	RicActionID   int32
-	SMName		  string
-	SMVersion 	  string
+	SMName        string
+	SMVersion     string
 }
 
 func NewManager(config Config) Manager {
@@ -57,10 +57,10 @@ type Manager interface {
 
 type AbstractManager struct {
 	Manager
-	Config Config
+	Config   Config
 	Sessions SBSessions
-	Chans Channels
-	Ctrls Controllers
+	Chans    Channels
+	Ctrls    Controllers
 }
 
 // SBSessions is a set of Southbound sessions
@@ -160,4 +160,3 @@ func (m *AbstractManager) getReportPeriod() (uint64, error) {
 	log.Infof("Received period value: %v", val)
 	return val, nil
 }
-

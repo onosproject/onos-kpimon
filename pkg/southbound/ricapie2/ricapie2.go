@@ -25,7 +25,7 @@ func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, r
 	var e2Session E2Session
 	if smVersion == "v1" {
 		e2Session = newV1E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion)
-	} else if smVersion  == "v2" {
+	} else if smVersion == "v2" {
 		e2Session = newV2E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion)
 	} else {
 		// It shouldn't be hit
@@ -52,8 +52,8 @@ type E2Session interface {
 
 type AbstractE2Session struct {
 	E2Session
-	E2SubEndpoint string
-	E2SubInstance sdkSub.Context
+	E2SubEndpoint  string
+	E2SubInstance  sdkSub.Context
 	SubDelTrigger  chan bool
 	E2TEndpoint    string
 	RicActionID    types.RicActionID

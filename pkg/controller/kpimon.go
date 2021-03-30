@@ -41,13 +41,13 @@ type AbstractKpiMonController struct {
 
 // CellIdentity is the ID for each cell
 type CellIdentity struct {
-	PlmnID   string
-	ECI   string
+	PlmnID string
+	ECI    string
 }
 
 type KpiMonMetricKey struct {
 	cellIdentity CellIdentity
-	Metric string
+	Metric       string
 }
 
 type KpiMonMetricValue struct {
@@ -58,7 +58,7 @@ func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string
 	key := KpiMonMetricKey{
 		cellIdentity: CellIdentity{
 			PlmnID: plmnID,
-			ECI: eci,
+			ECI:    eci,
 		},
 		Metric: metricType,
 	}

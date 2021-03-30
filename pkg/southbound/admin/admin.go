@@ -5,13 +5,13 @@
 package admin
 
 import (
-	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"context"
 	adminapi "github.com/onosproject/onos-api/go/onos/e2t/admin"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/southbound"
 	"google.golang.org/grpc"
 	"io"
 	"time"
-	"context"
 )
 
 var log = logging.GetLogger("southbound", "admin")
@@ -83,4 +83,3 @@ func (s *E2AdminSessionData) ConnectionHandler() (adminapi.E2TAdminServiceClient
 	adminClient := adminapi.NewE2TAdminServiceClient(conn)
 	return adminClient, nil
 }
-

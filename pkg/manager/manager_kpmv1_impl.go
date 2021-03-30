@@ -22,7 +22,7 @@ func newV1Manager(config Config) *V1Manager {
 			},
 			Sessions: SBSessions{
 				AdminSession: admin.NewE2AdminSession(config.E2tEndpoint),
-				E2Session: ricapie2.NewE2Session(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, 0, config.SMName, config.SMVersion),
+				E2Session:    ricapie2.NewE2Session(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, 0, config.SMName, config.SMVersion),
 			},
 			Ctrls: Controllers{
 				KpiMonController: controller.NewKpiMonController(indCh, config.SMVersion),
