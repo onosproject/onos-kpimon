@@ -22,11 +22,13 @@ type E2AdminSession interface {
 	ConnectionHandler() (adminapi.E2TAdminServiceClient, error)
 }
 
+// E2AdminSessionData is a struct having data for E2 admin session
 type E2AdminSessionData struct {
 	E2AdminSession
 	E2TEndpoint string
 }
 
+// NewE2AdminSession generates an E2 admin session
 func NewE2AdminSession(e2tEndpoint string) E2AdminSession {
 	var e2AdminSession E2AdminSession
 	log.Info("Creating E2Admin session")
@@ -36,6 +38,7 @@ func NewE2AdminSession(e2tEndpoint string) E2AdminSession {
 	return e2AdminSession
 }
 
+// GetListE2NodeIDs returns all E2 node IDs connected to ONOS-E2T
 func (s *E2AdminSessionData) GetListE2NodeIDs() ([]string, error) {
 	var nodeIDs []string
 
@@ -65,6 +68,7 @@ func (s *E2AdminSessionData) GetListE2NodeIDs() ([]string, error) {
 	return nodeIDs, nil
 }
 
+// ConnectionHandler is a handler to manage E2 admin session
 func (s *E2AdminSessionData) ConnectionHandler() (adminapi.E2TAdminServiceClient, error) {
 	log.Infof("Connecting to ONOS-E2T ... %s", s.E2TEndpoint)
 

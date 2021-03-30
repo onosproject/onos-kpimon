@@ -34,6 +34,7 @@ type Config struct {
 	SMVersion     string
 }
 
+// NewManager generates the new KPIMON xAPP manager
 func NewManager(config Config) Manager {
 	var manager Manager
 	if config.SMVersion == "v1" {
@@ -46,6 +47,7 @@ func NewManager(config Config) Manager {
 	return manager
 }
 
+// Manager is an interface of KPIMON manager
 type Manager interface {
 	Run()
 	Close()
@@ -55,6 +57,7 @@ type Manager interface {
 	getReportPeriod() (uint64, error)
 }
 
+// AbstractManager is an abstract struct for manager
 type AbstractManager struct {
 	Manager
 	Config   Config
@@ -79,6 +82,7 @@ type Controllers struct {
 	KpiMonController controller.KpiMonController
 }
 
+// Run runs KPIMON manager
 func (m *AbstractManager) Run() {
 	err := m.start()
 	if err != nil {
@@ -86,6 +90,7 @@ func (m *AbstractManager) Run() {
 	}
 }
 
+// Close closes manager
 func (m *AbstractManager) Close() {
 	log.Info("closing Manager")
 }

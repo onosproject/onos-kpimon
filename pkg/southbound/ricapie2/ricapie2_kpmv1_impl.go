@@ -59,10 +59,12 @@ func newV1E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32,
 	}
 }
 
+// V1E2Session is an E2 session for KPM v1.0
 type V1E2Session struct {
 	*AbstractE2Session
 }
 
+// Run starts E2 session
 func (s *V1E2Session) Run(indChan chan indication.Indication, adminSession admin.E2AdminSession) {
 	log.Info("Started KPIMON Southbound session")
 	s.ConfigEventCh = make(chan event.Event)

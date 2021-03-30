@@ -43,8 +43,8 @@ func main() {
 		E2SubEndpoint: *e2subEndpoint,
 		GRPCPort:      *grpcPort,
 		RicActionID:   int32(*ricActionID),
-		SMName: 	   *smName,
-		SMVersion: 	   *smVersion,
+		SMName:        *smName,
+		SMVersion:     *smVersion,
 	}
 
 	mgr := manager.NewManager(cfg)

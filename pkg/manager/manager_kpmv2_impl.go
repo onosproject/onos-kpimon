@@ -31,6 +31,7 @@ func newV2Manager(config Config) *V2Manager {
 	}
 }
 
+// V2Manager is a KPIMON manager for KPM v2.0
 type V2Manager struct {
 	*AbstractManager
 }

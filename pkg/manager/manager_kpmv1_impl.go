@@ -31,6 +31,7 @@ func newV1Manager(config Config) *V1Manager {
 	}
 }
 
+// V1Manager is a KPIMON manager for KPM v1.0
 type V1Manager struct {
 	*AbstractManager
 }

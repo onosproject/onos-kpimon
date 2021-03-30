@@ -12,6 +12,7 @@ import (
 
 var log = logging.GetLogger("controller", "kpimon")
 
+// NewKpiMonController makes a new kpimon controller
 func NewKpiMonController(indChan chan indication.Indication, smVersion string) KpiMonController {
 	var kpimonController KpiMonController
 	if smVersion == "v1" {
@@ -25,13 +26,14 @@ func NewKpiMonController(indChan chan indication.Indication, smVersion string) K
 	return kpimonController
 }
 
-// KpiMonController is the controller for the KPI monitoring
+// KpiMonController is an interface of the controller for KPIMON
 type KpiMonController interface {
 	Run()
 	listenIndChan()
 	parseIndMsg(indication.Indication)
 }
 
+// AbstractKpiMonController is an abstract struct for kpimon controller
 type AbstractKpiMonController struct {
 	KpiMonController
 	IndChan       chan indication.Indication
@@ -45,11 +47,13 @@ type CellIdentity struct {
 	ECI    string
 }
 
+// KpiMonMetricKey is the key of monitoring result map
 type KpiMonMetricKey struct {
 	cellIdentity CellIdentity
 	Metric       string
 }
 
+// KpiMonMetricValue is the value of monitoring result map
 type KpiMonMetricValue struct {
 	Value int32
 }

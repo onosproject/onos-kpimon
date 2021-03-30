@@ -21,6 +21,7 @@ import (
 
 var log = logging.GetLogger("southbound", "ricapie2")
 
+// NewE2Session generates a new E2Session
 func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) E2Session {
 	var e2Session E2Session
 	if smVersion == "v1" {
@@ -34,6 +35,7 @@ func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, r
 	return e2Session
 }
 
+// E2Session is an interface of E2 Session
 type E2Session interface {
 	Run(chan indication.Indication, admin.E2AdminSession)
 	SetReportPeriodMs(uint64)
@@ -50,6 +52,7 @@ type E2Session interface {
 	deleteE2Subscription() error
 }
 
+// AbstractE2Session is an abstract struct of E2 session
 type AbstractE2Session struct {
 	E2Session
 	E2SubEndpoint  string
@@ -65,10 +68,12 @@ type AbstractE2Session struct {
 	SMVersion      string
 }
 
+// SetReportPeriodMs changes the ReportPeriodMS
 func (s *AbstractE2Session) SetReportPeriodMs(period uint64) {
 	s.ReportPeriodMs = period
 }
 
+// SetAppConfig sets AppConfig
 func (s *AbstractE2Session) SetAppConfig(appConfig *app.Config) {
 	s.AppConfig = appConfig
 }

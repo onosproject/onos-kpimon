@@ -6,20 +6,28 @@ package controller
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
-	RRC_ConnEstabAtt_Tot            = "RRC.ConnEstabAtt.Tot"
-	RRC_ConnEstabSucc_Tot           = "RRC.ConnEstabSucc.Tot"
-	RRC_ConnReEstabAtt_Tot          = "RRC.ConnReEstabAtt.Tot"
-	RRC_ConnReEstabAtt_reconfigFail = "RRC.ConnReEstabAtt.reconfigFail"
-	RRC_ConnReEstabAtt_HOFail       = "RRC.ConnReEstabAtt.HOFail"
-	RRC_ConnReEstabAtt_Other        = "RRC.ConnReEstabAtt.Other"
-	RRC_Conn_Avg                    = "RRC.Conn.Avg"
-	RRC_Conn_Max                    = "RRC.Conn.Max"
+	// RRCConnEstabAttTot is for RRC.ConnEstabAtt.Tot attribute
+	RRCConnEstabAttTot = "RRC.ConnEstabAtt.Tot"
+	// RRCConnEstabSuccTot is for RRC.ConnEstabSucc.Tot attribute
+	RRCConnEstabSuccTot = "RRC.ConnEstabSucc.Tot"
+	// RRCConnReEstabAttTot is for RRC.ConnReEstabAtt.Tot attribute
+	RRCConnReEstabAttTot = "RRC.ConnReEstabAtt.Tot"
+	// RRCConnReEstabAttreconfigFail is for RRC.ConnReEstabAtt.reconfigFail attribute
+	RRCConnReEstabAttreconfigFail = "RRC.ConnReEstabAtt.reconfigFail"
+	// RRCConnReEstabAttHOFail is for RRC.ConnReEstabAtt.HOFail attribute
+	RRCConnReEstabAttHOFail = "RRC.ConnReEstabAtt.HOFail"
+	// RRCConnReEstabAttOther is for RRC.ConnEstabAtt.Tot attribute
+	RRCConnReEstabAttOther = "RRC.ConnReEstabAtt.Other"
+	// RRCConnAvg is for RRC.Conn.Avg attribute
+	RRCConnAvg = "RRC.Conn.Avg"
+	// RRCConnMax is for RRC.Conn.Max attribute
+	RRCConnMax = "RRC.Conn.Max"
 )
 
 func newV2KpiMonController(indChan chan indication.Indication) *V2KpiMonController {
@@ -31,10 +39,12 @@ func newV2KpiMonController(indChan chan indication.Indication) *V2KpiMonControll
 	}
 }
 
+// V2KpiMonController is the kpimon controller for KPM v2.0
 type V2KpiMonController struct {
 	*AbstractKpiMonController
 }
 
+// Run runs the kpimon controller for KPM v2.0
 func (v2 *V2KpiMonController) Run() {
 	v2.listenIndChan()
 }
@@ -75,41 +85,31 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	v2.KpiMonMutex.Lock()
 	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()); i++ {
 		var metricValue int32
-		if len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()) == 0 {
+		if len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()) == 0 || indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[0].GetNoValue() == 0 {
 			metricValue = 0
-		} else if indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[0].GetNoValue() == 0 {
-			metricValue = 0
+		} else {
+			metricValue = int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[0].GetInteger())
 		}
 
-		metricValue = int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[0].GetInteger())
 		switch indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue() {
-		case RRC_ConnEstabAtt_Tot:
-			v2.updateKpiMonResults(plmnID, eci, RRC_ConnEstabAtt_Tot, metricValue)
-			break
-		case RRC_ConnEstabSucc_Tot:
-			v2.updateKpiMonResults(plmnID, eci, RRC_ConnEstabSucc_Tot, metricValue)
-			break
-		case RRC_ConnReEstabAtt_Tot:
-			v2.updateKpiMonResults(plmnID, eci, RRC_ConnReEstabAtt_Tot, metricValue)
-			break
-		case RRC_ConnReEstabAtt_reconfigFail:
-			v2.updateKpiMonResults(plmnID, eci, RRC_ConnReEstabAtt_reconfigFail, metricValue)
-			break
-		case RRC_ConnReEstabAtt_HOFail:
-			v2.updateKpiMonResults(plmnID, eci, RRC_ConnReEstabAtt_HOFail, metricValue)
-			break
-		case RRC_ConnReEstabAtt_Other:
-			v2.updateKpiMonResults(plmnID, eci, RRC_ConnReEstabAtt_Other, metricValue)
-			break
-		case RRC_Conn_Avg:
-			v2.updateKpiMonResults(plmnID, eci, RRC_Conn_Avg, metricValue)
-			break
-		case RRC_Conn_Max:
-			v2.updateKpiMonResults(plmnID, eci, RRC_Conn_Max, metricValue)
-			break
+		case RRCConnEstabAttTot:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnEstabAttTot, metricValue)
+		case RRCConnEstabSuccTot:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnEstabSuccTot, metricValue)
+		case RRCConnReEstabAttTot:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttTot, metricValue)
+		case RRCConnReEstabAttreconfigFail:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttreconfigFail, metricValue)
+		case RRCConnReEstabAttHOFail:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttHOFail, metricValue)
+		case RRCConnReEstabAttOther:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttOther, metricValue)
+		case RRCConnAvg:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnAvg, metricValue)
+		case RRCConnMax:
+			v2.updateKpiMonResults(plmnID, eci, RRCConnMax, metricValue)
 		default:
 			log.Warnf("Unknown MeasName: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue())
-			break
 		}
 	}
 	log.Debugf("KpiMonResult: %v", v2.KpiMonResults)
@@ -146,12 +146,5 @@ func (v2 *V2KpiMonController) getCellIdentitiesFromHeader(header *e2sm_kpm_v2.E2
 	} else {
 		log.Errorf("Error when Parsing ECI in indication message header - %v", header.GetKpmNodeId())
 	}
-	return plmnID, eci, nil
-}
-
-func (v2 *V2KpiMonController) parseHeaderMacroEnbID(header *e2sm_kpm_v2.E2SmKpmIndicationHeaderFormat1) (string, string, error) {
-	var plmnID, eci string
-	plmnID = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetPLmnIdentity().GetValue())
-	eci = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetENbId().GetMacroENbId().GetValue())
 	return plmnID, eci, nil
 }
