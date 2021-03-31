@@ -7,6 +7,7 @@ package controller
 import (
 	"fmt"
 	e2sm_kpm_ies "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies"
+	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
 )
@@ -101,7 +102,7 @@ func (v1 *V1KpiMonController) parseHeaderENbID(header *e2sm_kpm_ies.E2SmKpmIndic
 func (v1 *V1KpiMonController) parseHeaserGNbID(header *e2sm_kpm_ies.E2SmKpmIndicationHeaderFormat1) (string, string, error) {
 	var plmnID, gnbID string
 
-	plmnID = fmt.Sprintf("%d", (*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetPlmnId().Value)
+	plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetPlmnId().Value))
 	gnbID = fmt.Sprintf("%d", (*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetGnbId().GetGnbId().Value)
 
 	return plmnID, gnbID, nil

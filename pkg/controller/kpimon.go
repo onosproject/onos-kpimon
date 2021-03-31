@@ -5,6 +5,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"sync"
@@ -29,6 +30,8 @@ func NewKpiMonController(indChan chan indication.Indication, smVersion string) K
 // KpiMonController is an interface of the controller for KPIMON
 type KpiMonController interface {
 	Run()
+	GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue
+	GetKpiMonMutex() *sync.RWMutex
 	listenIndChan()
 	parseIndMsg(indication.Indication)
 }
@@ -49,27 +52,37 @@ type CellIdentity struct {
 
 // KpiMonMetricKey is the key of monitoring result map
 type KpiMonMetricKey struct {
-	cellIdentity CellIdentity
+	CellIdentity CellIdentity
 	Metric       string
 }
 
 // KpiMonMetricValue is the value of monitoring result map
 type KpiMonMetricValue struct {
-	Value int32
+	Value string
 }
 
 func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string, metricType string, metricValue int32) {
 	key := KpiMonMetricKey{
-		cellIdentity: CellIdentity{
+		CellIdentity: CellIdentity{
 			PlmnID: plmnID,
 			ECI:    eci,
 		},
 		Metric: metricType,
 	}
 	value := KpiMonMetricValue{
-		Value: metricValue,
+		Value: fmt.Sprintf("%d", metricValue),
 	}
 	c.KpiMonResults[key] = value
 
-	log.Infof("KpiMonResults: %v", c.KpiMonResults)
+	log.Debugf("KpiMonResults: %v", c.KpiMonResults)
+}
+
+// GetKpiMonMutex returns Mutex to lock and unlock kpimon result map
+func (c *AbstractKpiMonController) GetKpiMonMutex() *sync.RWMutex {
+	return &c.KpiMonMutex
+}
+
+// GetKpiMonResults returns kpimon result map for all keys
+func (c *AbstractKpiMonController) GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue {
+	return c.KpiMonResults
 }

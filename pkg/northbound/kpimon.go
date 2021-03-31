@@ -6,6 +6,7 @@ package northbound
 
 import (
 	"context"
+	"fmt"
 	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
 	"github.com/onosproject/onos-kpimon/pkg/controller"
 	"github.com/onosproject/onos-lib-go/pkg/logging/service"
@@ -38,7 +39,46 @@ type Server struct {
 	Ctrl controller.KpiMonController
 }
 
-// GetNumActiveUEs returns how many UEs are active
-func (s Server) GetNumActiveUEs(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
-	return nil, nil
+// GetMetricTypes returns all metric types - for CLI
+func (s Server) GetMetricTypes(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
+	// ignore ID here since it will return results for all keys
+	attr := make(map[string]string)
+
+	s.Ctrl.GetKpiMonMutex().RLock()
+	for key := range s.Ctrl.GetKpiMonResults() {
+		attr[key.Metric] = "0"
+	}
+	s.Ctrl.GetKpiMonMutex().RUnlock()
+
+	response := &kpimonapi.GetResponse{
+		Object: &kpimonapi.Object{
+			Id:         "all",
+			Revision:   0,
+			Attributes: attr,
+		},
+	}
+
+	return response, nil
+}
+
+// GetMetrics returns all KPI monitoring results - for CLI
+func (s Server) GetMetrics(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
+	// ignore ID here since it will return results for all keys
+	attr := make(map[string]string)
+
+	s.Ctrl.GetKpiMonMutex().Lock()
+	for key, value := range s.Ctrl.GetKpiMonResults() {
+		attr[fmt.Sprintf("%s:%s:%s", key.CellIdentity.PlmnID, key.CellIdentity.ECI, key.Metric)] = value.Value
+	}
+	s.Ctrl.GetKpiMonMutex().Unlock()
+
+	response := &kpimonapi.GetResponse{
+		Object: &kpimonapi.Object{
+			Id:         "all",
+			Revision:   0,
+			Attributes: attr,
+		},
+	}
+
+	return response, nil
 }
