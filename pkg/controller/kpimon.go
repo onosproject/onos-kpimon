@@ -71,5 +71,5 @@ func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string
 	}
 	c.KpiMonResults[key] = value
 
-	log.Infof("KpiMonResults: %v", c.KpiMonResults)
+	log.Debugf("KpiMonResults: %v", c.KpiMonResults)
 }
