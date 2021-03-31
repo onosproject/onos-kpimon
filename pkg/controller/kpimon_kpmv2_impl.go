@@ -123,13 +123,13 @@ func (v2 *V2KpiMonController) getCellIdentitiesFromHeader(header *e2sm_kpm_v2.E2
 	var plmnID, eci string
 
 	if (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetPLmnIdentity() != nil {
-		plmnID = fmt.Sprintf("%d", utils.PlmnIdToUint32((*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetPLmnIdentity().GetValue()))
+		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetPLmnIdentity().GetValue()))
 	} else if (*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetPlmnId() != nil {
-		plmnID = fmt.Sprintf("%d", utils.PlmnIdToUint32((*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetPlmnId().GetValue()))
+		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetPlmnId().GetValue()))
 	} else if (*header).GetKpmNodeId().GetEnGNb().GetGlobalGNbId().GetPLmnIdentity() != nil {
-		plmnID = fmt.Sprintf("%d", utils.PlmnIdToUint32((*header).GetKpmNodeId().GetEnGNb().GetGlobalGNbId().GetPLmnIdentity().GetValue()))
+		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetEnGNb().GetGlobalGNbId().GetPLmnIdentity().GetValue()))
 	} else if (*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetPlmnId() != nil {
-		plmnID = fmt.Sprintf("%d", utils.PlmnIdToUint32((*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetPlmnId().GetValue()))
+		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetPlmnId().GetValue()))
 	} else {
 		log.Errorf("Error when Parsing PLMN ID in indication message header - %v", header.GetKpmNodeId())
 	}

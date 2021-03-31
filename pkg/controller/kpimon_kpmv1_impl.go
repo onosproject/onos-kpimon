@@ -102,7 +102,7 @@ func (v1 *V1KpiMonController) parseHeaderENbID(header *e2sm_kpm_ies.E2SmKpmIndic
 func (v1 *V1KpiMonController) parseHeaserGNbID(header *e2sm_kpm_ies.E2SmKpmIndicationHeaderFormat1) (string, string, error) {
 	var plmnID, gnbID string
 
-	plmnID = fmt.Sprintf("%d", utils.PlmnIdToUint32((*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetPlmnId().Value))
+	plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetPlmnId().Value))
 	gnbID = fmt.Sprintf("%d", (*header).GetIdGlobalKpmnodeId().GetGNb().GetGlobalGNbId().GetGnbId().GetGnbId().Value)
 
 	return plmnID, gnbID, nil

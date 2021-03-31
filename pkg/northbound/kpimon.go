@@ -39,6 +39,7 @@ type Server struct {
 	Ctrl controller.KpiMonController
 }
 
+// GetMetricTypes returns all metric types - for CLI
 func (s Server) GetMetricTypes(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
 	// ignore ID here since it will return results for all keys
 	attr := make(map[string]string)
@@ -51,8 +52,8 @@ func (s Server) GetMetricTypes(ctx context.Context, request *kpimonapi.GetReques
 
 	response := &kpimonapi.GetResponse{
 		Object: &kpimonapi.Object{
-			Id: "all",
-			Revision: 0,
+			Id:         "all",
+			Revision:   0,
 			Attributes: attr,
 		},
 	}
@@ -60,6 +61,7 @@ func (s Server) GetMetricTypes(ctx context.Context, request *kpimonapi.GetReques
 	return response, nil
 }
 
+// GetMetrics returns all KPI monitoring results - for CLI
 func (s Server) GetMetrics(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
 	// ignore ID here since it will return results for all keys
 	attr := make(map[string]string)
@@ -72,12 +74,11 @@ func (s Server) GetMetrics(ctx context.Context, request *kpimonapi.GetRequest) (
 
 	response := &kpimonapi.GetResponse{
 		Object: &kpimonapi.Object{
-			Id: "all",
-			Revision: 0,
+			Id:         "all",
+			Revision:   0,
 			Attributes: attr,
 		},
 	}
 
 	return response, nil
 }
-
