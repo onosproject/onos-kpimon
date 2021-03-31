@@ -12,25 +12,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const (
-	// RRCConnEstabAttTot is for RRC.ConnEstabAtt.Tot attribute
-	RRCConnEstabAttTot = "RRC.ConnEstabAtt.Tot"
-	// RRCConnEstabSuccTot is for RRC.ConnEstabSucc.Tot attribute
-	RRCConnEstabSuccTot = "RRC.ConnEstabSucc.Tot"
-	// RRCConnReEstabAttTot is for RRC.ConnReEstabAtt.Tot attribute
-	RRCConnReEstabAttTot = "RRC.ConnReEstabAtt.Tot"
-	// RRCConnReEstabAttreconfigFail is for RRC.ConnReEstabAtt.reconfigFail attribute
-	RRCConnReEstabAttreconfigFail = "RRC.ConnReEstabAtt.reconfigFail"
-	// RRCConnReEstabAttHOFail is for RRC.ConnReEstabAtt.HOFail attribute
-	RRCConnReEstabAttHOFail = "RRC.ConnReEstabAtt.HOFail"
-	// RRCConnReEstabAttOther is for RRC.ConnEstabAtt.Tot attribute
-	RRCConnReEstabAttOther = "RRC.ConnReEstabAtt.Other"
-	// RRCConnAvg is for RRC.Conn.Avg attribute
-	RRCConnAvg = "RRC.Conn.Avg"
-	// RRCConnMax is for RRC.Conn.Max attribute
-	RRCConnMax = "RRC.Conn.Max"
-)
-
 func newV2KpiMonController(indChan chan indication.Indication) *V2KpiMonController {
 	return &V2KpiMonController{
 		AbstractKpiMonController: &AbstractKpiMonController{
@@ -84,36 +65,12 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
 
 	v2.KpiMonMutex.Lock()
-	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()); i++ {
-		var metricValue int32
-		if len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()) == 0 {
-			metricValue = 0
-		} else {
-			metricValue = int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[0].GetInteger())
-		}
+	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[0].GetMeasRecord().GetValue()); i++ {
+		metricValue := int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[0].GetMeasRecord().GetValue()[i].GetInteger())
 
-		log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i])
+		log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
 
-		switch indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue() {
-		case RRCConnEstabAttTot:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnEstabAttTot, metricValue)
-		case RRCConnEstabSuccTot:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnEstabSuccTot, metricValue)
-		case RRCConnReEstabAttTot:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttTot, metricValue)
-		case RRCConnReEstabAttreconfigFail:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttreconfigFail, metricValue)
-		case RRCConnReEstabAttHOFail:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttHOFail, metricValue)
-		case RRCConnReEstabAttOther:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnReEstabAttOther, metricValue)
-		case RRCConnAvg:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnAvg, metricValue)
-		case RRCConnMax:
-			v2.updateKpiMonResults(plmnID, eci, RRCConnMax, metricValue)
-		default:
-			log.Warnf("Unknown MeasName: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue())
-		}
+		v2.updateKpiMonResults(plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
 	}
 	log.Debugf("KpiMonResult: %v", v2.KpiMonResults)
 	v2.KpiMonMutex.Unlock()
