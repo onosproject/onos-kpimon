@@ -129,7 +129,7 @@ func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, n
 	}
 
 	clientConfig := e2client.Config{
-		AppID: "onos-pci",
+		AppID: "onos-kpimon-v2",
 		E2TService: e2client.ServiceConfig{
 			Host: e2tHost,
 			Port: e2tPort,
