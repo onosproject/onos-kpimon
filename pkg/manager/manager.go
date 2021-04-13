@@ -176,8 +176,3 @@ func (m *AbstractManager) getReportPeriod() (uint64, error) {
 	log.Infof("Received period value: %v", val)
 	return val, nil
 }
-
-//func (m *AbstractManager) getActionDefinitions() ([]string, error) {
-//	actionDefinitions, _ := m.Config.AppConfig.Get(ricapie2.ActionDefinitionConfigPath)
-//	return nil, nil
-//}
