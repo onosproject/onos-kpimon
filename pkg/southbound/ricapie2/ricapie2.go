@@ -18,10 +18,6 @@ import (
 	"sync"
 )
 
-const (
-	ActionDefinitionConfigPath = "/action_definition/list"
-)
-
 var log = logging.GetLogger("southbound", "ricapie2")
 
 // NewE2Session generates a new E2Session

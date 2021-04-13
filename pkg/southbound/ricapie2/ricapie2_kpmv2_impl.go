@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// KpmServiceModelOIDV2 is the OID for KPM V2.0
 const KpmServiceModelOIDV2 = "1.3.6.1.4.1.53148.1.2.2.2"
 
 func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) *V2E2Session {
@@ -98,6 +99,9 @@ func (s *V2E2Session) getRanFuncDesc(nodeID string, adminSession admin.E2AdminSe
 	for _, ranFunction := range ranFunctions {
 		if ranFunction.Oid == KpmServiceModelOIDV2 {
 			err = proto.Unmarshal(ranFunction.Description, ranFunctionDesc)
+			if err != nil {
+				return nil, err
+			}
 			ranFunctionFound = true
 		}
 	}
@@ -217,35 +221,6 @@ func (s *V2E2Session) createSubscriptionRequestWithActionDefinition(nodeID strin
 	return sub, nil
 }
 
-func (s *V2E2Session) createSubscriptionRequest(nodeID string) (subscription.SubscriptionDetails, error) {
-	sub := subscription.SubscriptionDetails{
-		E2NodeID: subscription.E2NodeID(nodeID),
-		ServiceModel: subscription.ServiceModel{
-			Name:    subscription.ServiceModelName(s.SMName),
-			Version: subscription.ServiceModelVersion(s.SMVersion),
-		},
-		EventTrigger: subscription.EventTrigger{
-			Payload: subscription.Payload{
-				Encoding: subscription.Encoding_ENCODING_PROTO,
-				Data:     s.createEventTriggerData(),
-			},
-		},
-		Actions: []subscription.Action{
-			{
-				ID:   int32(s.RicActionID),
-				Type: subscription.ActionType_ACTION_TYPE_REPORT,
-				SubsequentAction: &subscription.SubsequentAction{
-					Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
-					TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
-				},
-			},
-		},
-	}
-	log.Debugf("subscription request: %v", sub)
-
-	return sub, nil
-}
-
 func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) error {
 	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
 
@@ -338,6 +313,7 @@ func (s *V2E2Session) getReportPeriodFromAdmin() int32 {
 	return int32(s.ReportPeriodMs)
 }
 
+// GetKpiMonMetricMap returns the KpiMonMetricMap
 func (s *V2E2Session) GetKpiMonMetricMap(adminSession admin.E2AdminSession) (map[int]string, error) {
 	nodeIDs, err := adminSession.GetListE2NodeIDs()
 	if err != nil {

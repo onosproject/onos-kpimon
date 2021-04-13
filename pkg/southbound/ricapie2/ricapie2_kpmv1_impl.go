@@ -233,6 +233,7 @@ func (s *V1E2Session) getReportPeriodFromAdmin() int32 {
 	return int32(rtPeriod)
 }
 
+// GetKpiMonMetricMap returns the KpiMonMetricMap
 func (s *V1E2Session) GetKpiMonMetricMap(admin admin.E2AdminSession) (map[int]string, error) {
 	return s.KpiMonMetricMap, nil
 }
