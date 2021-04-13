@@ -64,6 +64,7 @@ type AbstractManager struct {
 	Sessions SBSessions
 	Chans    Channels
 	Ctrls    Controllers
+	Maps     Maps
 }
 
 // SBSessions is a set of Southbound sessions
@@ -80,6 +81,10 @@ type Channels struct {
 // Controllers is a set of controllers
 type Controllers struct {
 	KpiMonController controller.KpiMonController
+}
+
+type Maps struct {
+	KpiMonMetricMap map[int]string
 }
 
 // Run runs KPIMON manager
@@ -114,9 +119,10 @@ func (m *AbstractManager) start() error {
 	}
 	m.Sessions.E2Session.SetReportPeriodMs(period)
 	m.Sessions.E2Session.SetAppConfig(m.Config.AppConfig)
+	kpimonMetricMap, err := m.Sessions.E2Session.GetKpiMonMetricMap(m.Sessions.AdminSession)
 
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
-	go m.Ctrls.KpiMonController.Run()
+	go m.Ctrls.KpiMonController.Run(kpimonMetricMap)
 
 	return nil
 }
@@ -165,3 +171,8 @@ func (m *AbstractManager) getReportPeriod() (uint64, error) {
 	log.Infof("Received period value: %v", val)
 	return val, nil
 }
+
+//func (m *AbstractManager) getActionDefinitions() ([]string, error) {
+//	actionDefinitions, _ := m.Config.AppConfig.Get(ricapie2.ActionDefinitionConfigPath)
+//	return nil, nil
+//}
