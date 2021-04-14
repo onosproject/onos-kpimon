@@ -25,7 +25,7 @@ import (
 // KpmServiceModelOIDV2 is the OID for KPM V2.0
 const KpmServiceModelOIDV2 = "1.3.6.1.4.1.53148.1.2.2.2"
 
-func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) *V2E2Session {
+func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string, kpimonMetricMap map[int]string) *V2E2Session {
 	log.Info("Creating RICAPI E2Session for KPM v2.0")
 	return &V2E2Session{
 		AbstractE2Session: &AbstractE2Session{
@@ -35,7 +35,7 @@ func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32,
 			ReportPeriodMs:  reportPeriodMs,
 			SMName:          smName,
 			SMVersion:       smVersion,
-			KpiMonMetricMap: make(map[int]string),
+			KpiMonMetricMap: kpimonMetricMap,
 		},
 	}
 }
@@ -68,6 +68,32 @@ func (s *V2E2Session) manageConnections(indChan chan indication.Indication, admi
 			continue
 		}
 		log.Infof("Received E2Nodes: %v", nodeIDs)
+
+		hasKpiMonMetricMap := true
+		for _, id := range nodeIDs {
+			ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
+			if err != nil {
+				hasKpiMonMetricMap = false
+				break
+			}
+			for range ranFuncDesc.GetRicKpmNodeList()[0].GetCellMeasurementObjectList() {
+				for _, measInfoActionItem := range ranFuncDesc.GetRicReportStyleList()[0].GetMeasInfoActionList().GetValue() {
+					actionName := measInfoActionItem.GetMeasName()
+					actionID := measInfoActionItem.GetMeasId()
+					log.Debugf("Check RAN function description to make KpiMonMetricMap - ranFuncDesc: %v", ranFuncDesc)
+					log.Debugf("Check MeasInfoActionItem to make KpiMonMetricMap - ranFuncDesc: %v", measInfoActionItem)
+					log.Debugf("KpiMonMetricMap generation - name:%v, id:%d", actionName, actionID)
+					s.KpiMonMetricMap[int(actionID.Value)] = actionName.Value
+				}
+			}
+		}
+
+		log.Debugf("KPIMONMetricMap: %v", s.KpiMonMetricMap)
+
+		if !hasKpiMonMetricMap {
+			continue
+		}
+
 		var wg sync.WaitGroup
 		for _, id := range nodeIDs {
 			wg.Add(1)
@@ -125,17 +151,30 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 			Value: make([]*e2sm_kpm_v2.MeasurementInfoItem, 0),
 		}
 		for _, measInfoActionItem := range ranFuncDesc.GetRicReportStyleList()[0].GetMeasInfoActionList().GetValue() {
+			// for test with name
 			actionName := measInfoActionItem.GetMeasName()
-
 			tmpMeasTypeMeasName, err := pdubuilder.CreateMeasurementTypeMeasName(actionName.Value)
 			if err != nil {
 				return nil, err
 			}
-			tmpMeasInfoItem, err := pdubuilder.CreateMeasurementInfoItem(tmpMeasTypeMeasName, nil)
+
+			tmpMeasInfoItem1, err := pdubuilder.CreateMeasurementInfoItem(tmpMeasTypeMeasName, nil)
 			if err != nil {
 				return nil, err
 			}
-			measInfoList.Value = append(measInfoList.Value, tmpMeasInfoItem)
+			measInfoList.Value = append(measInfoList.Value, tmpMeasInfoItem1)
+
+			// for test with ID
+			//actionID := measInfoActionItem.GetMeasId()
+			//tmpMeasTypeMeasID, err := pdubuilder.CreateMeasurementTypeMeasID(actionID.Value)
+			//if err != nil {
+			//	return nil, err
+			//}
+			//tmpMeasInfoItem2, err := pdubuilder.CreateMeasurementInfoItem(tmpMeasTypeMeasID, nil)
+			//if err != nil {
+			//	return nil, err
+			//}
+			//measInfoList.Value = append(measInfoList.Value, tmpMeasInfoItem2)
 		}
 		subsIDString := fmt.Sprintf("%d%d", s.RicActionID, cellMeasObjItem.GetCellGlobalId().GetEUtraCgi().EUtracellIdentity.Value.Value)
 		subID, err := strconv.ParseInt(subsIDString, 10, 64)
@@ -314,29 +353,34 @@ func (s *V2E2Session) getReportPeriodFromAdmin() int32 {
 }
 
 // GetKpiMonMetricMap returns the KpiMonMetricMap
-func (s *V2E2Session) GetKpiMonMetricMap(adminSession admin.E2AdminSession) (map[int]string, error) {
-	nodeIDs, err := adminSession.GetListE2NodeIDs()
-	if err != nil {
-		log.Errorf("Cannot get NodeIDs through Admin API: %s", err)
-		return nil, err
-	} else if len(nodeIDs) == 0 {
-		log.Warnf("CU-CP is not running - wait until CU-CP is ready")
-		return nil, err
-	}
-
-	for _, id := range nodeIDs {
-		ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
-		if err != nil {
-			return nil, err
-		}
-		for range ranFuncDesc.GetRicKpmNodeList()[0].GetCellMeasurementObjectList() {
-			for _, measInfoActionItem := range ranFuncDesc.GetRicReportStyleList()[0].GetMeasInfoActionList().GetValue() {
-				actionName := measInfoActionItem.GetMeasName()
-				actionID := measInfoActionItem.GetMeasId()
-				s.KpiMonMetricMap[int(actionID.Value)] = actionName.Value
-			}
-		}
-	}
-
-	return s.KpiMonMetricMap, nil
-}
+//func (s *V2E2Session) GetKpiMonMetricMap(adminSession admin.E2AdminSession) (map[int]string, error) {
+//	nodeIDs, err := adminSession.GetListE2NodeIDs()
+//	if err != nil {
+//		log.Errorf("Cannot get NodeIDs through Admin API: %s", err)
+//		return nil, err
+//	} else if len(nodeIDs) == 0 {
+//		log.Warnf("CU-CP is not running - wait until CU-CP is ready")
+//		return nil, err
+//	}
+//
+//	for _, id := range nodeIDs {
+//		ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
+//		if err != nil {
+//			return nil, err
+//		}
+//		for range ranFuncDesc.GetRicKpmNodeList()[0].GetCellMeasurementObjectList() {
+//			for _, measInfoActionItem := range ranFuncDesc.GetRicReportStyleList()[0].GetMeasInfoActionList().GetValue() {
+//				actionName := measInfoActionItem.GetMeasName()
+//				actionID := measInfoActionItem.GetMeasId()
+//				log.Debugf("Check RAN function description to make KpiMonMetricMap - ranFuncDesc: %v", ranFuncDesc)
+//				log.Debugf("Check MeasInfoActionItem to make KpiMonMetricMap - ranFuncDesc: %v", measInfoActionItem)
+//				log.Debugf("KpiMonMetricMap generation - name:%v, id:%d", actionName, actionID)
+//				s.KpiMonMetricMap[int(actionID.Value)] = actionName.Value
+//			}
+//		}
+//	}
+//
+//	log.Debugf("KPIMonMetricMap: %v", s.KpiMonMetricMap)
+//
+//	return s.KpiMonMetricMap, nil
+//}

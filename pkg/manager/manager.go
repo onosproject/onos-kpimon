@@ -120,14 +120,9 @@ func (m *AbstractManager) start() error {
 	}
 	m.Sessions.E2Session.SetReportPeriodMs(period)
 	m.Sessions.E2Session.SetAppConfig(m.Config.AppConfig)
-	kpimonMetricMap, err := m.Sessions.E2Session.GetKpiMonMetricMap(m.Sessions.AdminSession)
-	if err != nil {
-		log.Error("Failed to get KPIMON Metric Map: %v", err)
-		return err
-	}
 
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
-	go m.Ctrls.KpiMonController.Run(kpimonMetricMap)
+	go m.Ctrls.KpiMonController.Run(m.Maps.KpiMonMetricMap)
 
 	return nil
 }
