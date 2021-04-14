@@ -21,12 +21,12 @@ import (
 var log = logging.GetLogger("southbound", "ricapie2")
 
 // NewE2Session generates a new E2Session
-func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) E2Session {
+func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string, kpiMonMetricMap map[int]string) E2Session {
 	var e2Session E2Session
 	if smVersion == "v1" {
-		e2Session = newV1E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion)
+		e2Session = newV1E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion, kpiMonMetricMap)
 	} else if smVersion == "v2" {
-		e2Session = newV2E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion)
+		e2Session = newV2E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion, kpiMonMetricMap)
 	} else {
 		// It shouldn't be hit
 		log.Fatal("The received service model version %s is not valid - it must be v1 or v2", smVersion)
@@ -39,7 +39,7 @@ type E2Session interface {
 	Run(chan indication.Indication, admin.E2AdminSession)
 	SetReportPeriodMs(uint64)
 	SetAppConfig(*app.Config)
-	GetKpiMonMetricMap(admin.E2AdminSession) (map[int]string, error)
+	GetKpiMonMetricMap() map[int]string
 	updateReportPeriod(event.Event) error
 	processConfigEvents()
 	watchConfigChanges() error
@@ -125,4 +125,9 @@ func (s *AbstractE2Session) deleteE2Subscription() error {
 	}
 	s.SubDelTrigger <- true
 	return nil
+}
+
+// GetKpiMonMetricMap returns the KpiMonMetricMap
+func (s *V1E2Session) GetKpiMonMetricMap() map[int]string {
+	return s.KpiMonMetricMap
 }

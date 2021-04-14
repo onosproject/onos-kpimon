@@ -14,6 +14,7 @@ import (
 func newV2Manager(config Config) *V2Manager {
 	log.Info("Creating Manager for KPM V2.0")
 	indCh := make(chan indication.Indication)
+	kpiMonMetricMap := make(map[int]string)
 	return &V2Manager{
 		AbstractManager: &AbstractManager{
 			Config: config,
@@ -22,10 +23,13 @@ func newV2Manager(config Config) *V2Manager {
 			},
 			Sessions: SBSessions{
 				AdminSession: admin.NewE2AdminSession(config.E2tEndpoint),
-				E2Session:    ricapie2.NewE2Session(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, 0, config.SMName, config.SMVersion),
+				E2Session:    ricapie2.NewE2Session(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, 0, config.SMName, config.SMVersion, kpiMonMetricMap),
 			},
 			Ctrls: Controllers{
 				KpiMonController: controller.NewKpiMonController(indCh, config.SMVersion),
+			},
+			Maps: Maps{
+				KpiMonMetricMap: kpiMonMetricMap,
 			},
 		},
 	}
