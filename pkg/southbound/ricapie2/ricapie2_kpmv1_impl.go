@@ -231,4 +231,3 @@ func (s *V1E2Session) getReportPeriodFromAdmin() int32 {
 	rtPeriod := periodRanges.Search(int(s.ReportPeriodMs))
 	return int32(rtPeriod)
 }
-
