@@ -6,7 +6,6 @@ package ricapie2
 
 import (
 	"context"
-	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -40,32 +39,28 @@ type E2Session interface {
 	Run(chan indication.Indication, admin.E2AdminSession)
 	SetReportPeriodMs(uint64)
 	SetAppConfig(*app.Config)
-	updateReportPeriod(event event.Event) error
+	GetKpiMonMetricMap(admin.E2AdminSession) (map[int]string, error)
+	updateReportPeriod(event.Event) error
 	processConfigEvents()
 	watchConfigChanges() error
-	manageConnections(chan indication.Indication, admin.E2AdminSession)
-	manageConnection(chan indication.Indication, string)
-	getReportPeriodFromAdmin() int32
-	createEventTriggerData() []byte
-	createSubscriptionRequest(string) (subscription.SubscriptionDetails, error)
-	createE2Subscription(chan indication.Indication, string) error
 	deleteE2Subscription() error
 }
 
 // AbstractE2Session is an abstract struct of E2 session
 type AbstractE2Session struct {
 	E2Session
-	E2SubEndpoint  string
-	E2SubInstance  sdkSub.Context
-	SubDelTrigger  chan bool
-	E2TEndpoint    string
-	RicActionID    types.RicActionID
-	ReportPeriodMs uint64
-	AppConfig      *app.Config
-	EventMutex     sync.RWMutex
-	ConfigEventCh  chan event.Event
-	SMName         string
-	SMVersion      string
+	E2SubEndpoint   string
+	E2SubInstance   sdkSub.Context
+	SubDelTrigger   chan bool
+	E2TEndpoint     string
+	RicActionID     types.RicActionID
+	ReportPeriodMs  uint64
+	AppConfig       *app.Config
+	EventMutex      sync.RWMutex
+	ConfigEventCh   chan event.Event
+	SMName          string
+	SMVersion       string
+	KpiMonMetricMap map[int]string
 }
 
 // SetReportPeriodMs changes the ReportPeriodMS

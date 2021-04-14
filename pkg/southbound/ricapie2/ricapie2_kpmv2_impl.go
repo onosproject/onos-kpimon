@@ -6,8 +6,10 @@ package ricapie2
 
 import (
 	"context"
+	"fmt"
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/pdubuilder"
+	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
@@ -20,16 +22,20 @@ import (
 	"time"
 )
 
+// KpmServiceModelOIDV2 is the OID for KPM V2.0
+const KpmServiceModelOIDV2 = "1.3.6.1.4.1.53148.1.2.2.2"
+
 func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) *V2E2Session {
 	log.Info("Creating RICAPI E2Session for KPM v2.0")
 	return &V2E2Session{
 		AbstractE2Session: &AbstractE2Session{
-			E2SubEndpoint:  e2subEndpoint,
-			E2TEndpoint:    e2tEndpoint,
-			RicActionID:    types.RicActionID(ricActionID),
-			ReportPeriodMs: reportPeriodMs,
-			SMName:         smName,
-			SMVersion:      smVersion,
+			E2SubEndpoint:   e2subEndpoint,
+			E2TEndpoint:     e2tEndpoint,
+			RicActionID:     types.RicActionID(ricActionID),
+			ReportPeriodMs:  reportPeriodMs,
+			SMName:          smName,
+			SMVersion:       smVersion,
+			KpiMonMetricMap: make(map[int]string),
 		},
 	}
 }
@@ -68,7 +74,13 @@ func (s *V2E2Session) manageConnections(indChan chan indication.Indication, admi
 			go func(id string, wg *sync.WaitGroup) {
 				defer wg.Done()
 				for {
-					s.manageConnection(indChan, id)
+
+					ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
+					if err != nil {
+						log.Error(err)
+						time.Sleep(1 * time.Second)
+					}
+					s.manageConnection(indChan, id, ranFuncDesc)
 				}
 			}(id, &wg)
 		}
@@ -76,14 +88,120 @@ func (s *V2E2Session) manageConnections(indChan chan indication.Indication, admi
 	}
 }
 
-func (s *V2E2Session) manageConnection(indChan chan indication.Indication, nodeID string) {
-	err := s.createE2Subscription(indChan, nodeID)
+func (s *V2E2Session) getRanFuncDesc(nodeID string, adminSession admin.E2AdminSession) (*e2sm_kpm_v2.E2SmKpmRanfunctionDescription, error) {
+	ranFunctions, err := adminSession.GetRANFunctions(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	ranFunctionDesc := &e2sm_kpm_v2.E2SmKpmRanfunctionDescription{}
+	ranFunctionFound := false
+	for _, ranFunction := range ranFunctions {
+		if ranFunction.Oid == KpmServiceModelOIDV2 {
+			err = proto.Unmarshal(ranFunction.Description, ranFunctionDesc)
+			if err != nil {
+				return nil, err
+			}
+			ranFunctionFound = true
+		}
+	}
+	if !ranFunctionFound {
+		return nil, fmt.Errorf("Cannot find RANFunction OID (%s) from nodeID %s", KpmServiceModelOIDV2, nodeID)
+	}
+
+	log.Debugf("RANFunctionDesc: %v", ranFunctionDesc)
+	return ranFunctionDesc, nil
+}
+
+func (s *V2E2Session) getCellObjectID(cellMeasureObjectItem *e2sm_kpm_v2.CellMeasurementObjectItem) string {
+	return cellMeasureObjectItem.CellObjectId.Value
+}
+
+func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) (map[string]*e2sm_kpm_v2.E2SmKpmActionDefinition, error) {
+	result := make(map[string]*e2sm_kpm_v2.E2SmKpmActionDefinition)
+	for _, cellMeasObjItem := range ranFuncDesc.GetRicKpmNodeList()[0].GetCellMeasurementObjectList() {
+		cellObjID := s.getCellObjectID(cellMeasObjItem)
+		measInfoList := &e2sm_kpm_v2.MeasurementInfoList{
+			Value: make([]*e2sm_kpm_v2.MeasurementInfoItem, 0),
+		}
+		for _, measInfoActionItem := range ranFuncDesc.GetRicReportStyleList()[0].GetMeasInfoActionList().GetValue() {
+			actionName := measInfoActionItem.GetMeasName()
+
+			tmpMeasTypeMeasName, err := pdubuilder.CreateMeasurementTypeMeasName(actionName.Value)
+			if err != nil {
+				return nil, err
+			}
+			tmpMeasInfoItem, err := pdubuilder.CreateMeasurementInfoItem(tmpMeasTypeMeasName, nil)
+			if err != nil {
+				return nil, err
+			}
+			measInfoList.Value = append(measInfoList.Value, tmpMeasInfoItem)
+		}
+		subsIDString := fmt.Sprintf("%d%d", s.RicActionID, cellMeasObjItem.GetCellGlobalId().GetEUtraCgi().EUtracellIdentity.Value.Value)
+		subID, err := strconv.ParseInt(subsIDString, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		actionDefinitionCell, err := pdubuilder.CreateActionDefinitionFormat1(cellObjID, measInfoList, int32(s.ReportPeriodMs), subID)
+		if err != nil {
+			return nil, err
+		}
+
+		e2smKpmActionDefinitionCell, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(1, actionDefinitionCell)
+		if err != nil {
+			return nil, err
+		}
+
+		result[cellObjID] = e2smKpmActionDefinitionCell
+	}
+	log.Debugf("ActionDefinitions: %v", result)
+	return result, nil
+}
+
+func (s *V2E2Session) createSubscriptionActionsList(e2smKpmActionDefinitions map[string]*e2sm_kpm_v2.E2SmKpmActionDefinition) ([]subscription.Action, error) {
+	result := make([]subscription.Action, 0)
+	for _, v := range e2smKpmActionDefinitions {
+		protoBytesCell, err := proto.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+
+		tmpAction := &subscription.Action{
+			ID:   int32(s.RicActionID),
+			Type: subscription.ActionType_ACTION_TYPE_REPORT,
+			SubsequentAction: &subscription.SubsequentAction{
+				Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
+				TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
+			},
+			Payload: subscription.Payload{
+				Encoding: subscription.Encoding_ENCODING_PROTO,
+				Data:     protoBytesCell,
+			},
+		}
+
+		result = append(result, *tmpAction)
+	}
+	return result, nil
+}
+
+func (s *V2E2Session) manageConnection(indChan chan indication.Indication, nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) {
+	err := s.createE2Subscription(indChan, nodeID, ranFuncDesc)
 	if err != nil {
 		log.Errorf("Error happens when creating E2 subscription - %s", err)
 	}
 }
 
-func (s *V2E2Session) createSubscriptionRequest(nodeID string) (subscription.SubscriptionDetails, error) {
+func (s *V2E2Session) createSubscriptionRequestWithActionDefinition(nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) (subscription.SubscriptionDetails, error) {
+	actionDefMap, err := s.createActionDefinition(ranFuncDesc)
+	if err != nil {
+		return subscription.SubscriptionDetails{}, err
+	}
+	actionDefinition, err := s.createSubscriptionActionsList(actionDefMap)
+	if err != nil {
+		return subscription.SubscriptionDetails{}, err
+	}
+
 	sub := subscription.SubscriptionDetails{
 		E2NodeID: subscription.E2NodeID(nodeID),
 		ServiceModel: subscription.ServiceModel{
@@ -96,23 +214,14 @@ func (s *V2E2Session) createSubscriptionRequest(nodeID string) (subscription.Sub
 				Data:     s.createEventTriggerData(),
 			},
 		},
-		Actions: []subscription.Action{
-			{
-				ID:   int32(s.RicActionID),
-				Type: subscription.ActionType_ACTION_TYPE_REPORT,
-				SubsequentAction: &subscription.SubsequentAction{
-					Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
-					TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
-				},
-			},
-		},
+		Actions: actionDefinition,
 	}
-	log.Debugf("sub: %v", sub)
+	log.Debugf("subscription request: %v", sub)
 
 	return sub, nil
 }
 
-func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, nodeID string) error {
+func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) error {
 	log.Infof("Connecting to ONOS-E2Sub...%s", s.E2SubEndpoint)
 
 	e2SubHost := strings.Split(s.E2SubEndpoint, ":")[0]
@@ -150,7 +259,7 @@ func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, n
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	subReq, err := s.createSubscriptionRequest(nodeID)
+	subReq, err := s.createSubscriptionRequestWithActionDefinition(nodeID, ranFuncDesc)
 	if err != nil {
 		log.Error("Can't create SubsdcriptionRequest message")
 		return err
@@ -202,4 +311,32 @@ func (s *V2E2Session) createEventTriggerData() []byte {
 
 func (s *V2E2Session) getReportPeriodFromAdmin() int32 {
 	return int32(s.ReportPeriodMs)
+}
+
+// GetKpiMonMetricMap returns the KpiMonMetricMap
+func (s *V2E2Session) GetKpiMonMetricMap(adminSession admin.E2AdminSession) (map[int]string, error) {
+	nodeIDs, err := adminSession.GetListE2NodeIDs()
+	if err != nil {
+		log.Errorf("Cannot get NodeIDs through Admin API: %s", err)
+		return nil, err
+	} else if len(nodeIDs) == 0 {
+		log.Warnf("CU-CP is not running - wait until CU-CP is ready")
+		return nil, err
+	}
+
+	for _, id := range nodeIDs {
+		ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
+		if err != nil {
+			return nil, err
+		}
+		for range ranFuncDesc.GetRicKpmNodeList()[0].GetCellMeasurementObjectList() {
+			for _, measInfoActionItem := range ranFuncDesc.GetRicReportStyleList()[0].GetMeasInfoActionList().GetValue() {
+				actionName := measInfoActionItem.GetMeasName()
+				actionID := measInfoActionItem.GetMeasId()
+				s.KpiMonMetricMap[int(actionID.Value)] = actionName.Value
+			}
+		}
+	}
+
+	return s.KpiMonMetricMap, nil
 }

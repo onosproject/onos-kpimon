@@ -27,7 +27,8 @@ type V2KpiMonController struct {
 }
 
 // Run runs the kpimon controller for KPM v2.0
-func (v2 *V2KpiMonController) Run() {
+func (v2 *V2KpiMonController) Run(kpimonMetricMap map[int]string) {
+	v2.KpiMonMetricMap = kpimonMetricMap
 	v2.listenIndChan()
 }
 
@@ -68,9 +69,14 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[0].GetMeasRecord().GetValue()); i++ {
 		metricValue := int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[0].GetMeasRecord().GetValue()[i].GetInteger())
 
-		log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
-
-		v2.updateKpiMonResults(plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
+		if indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue() == "" {
+			log.Debugf("Indication message does not have MeasName - use MeasID")
+			log.Debugf("Value in Indication message for type %v (MeasID-%d): %v", v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasId().Value)], int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasId().Value), metricValue)
+			v2.updateKpiMonResults(plmnID, eci, v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasId().Value)], metricValue)
+		} else {
+			log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
+			v2.updateKpiMonResults(plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
+		}
 	}
 	log.Debugf("KpiMonResult: %v", v2.KpiMonResults)
 	v2.KpiMonMutex.Unlock()

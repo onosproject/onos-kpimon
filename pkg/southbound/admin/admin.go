@@ -19,6 +19,7 @@ var log = logging.GetLogger("southbound", "admin")
 // E2AdminSession is responsible for mapping connections to and interactions with the northbound admin API of ONOS-E2T
 type E2AdminSession interface {
 	GetListE2NodeIDs() ([]string, error)
+	GetRANFunctions(string) ([]*adminapi.RANFunction, error)
 	ConnectionHandler() (adminapi.E2TAdminServiceClient, error)
 }
 
@@ -66,6 +67,36 @@ func (s *E2AdminSessionData) GetListE2NodeIDs() ([]string, error) {
 	}
 
 	return nodeIDs, nil
+}
+
+// GetRANFunctions get list of RAN functions for a given node
+func (s *E2AdminSessionData) GetRANFunctions(nodeID string) ([]*adminapi.RANFunction, error) {
+	var ranFunctions []*adminapi.RANFunction
+
+	adminClient, err := s.ConnectionHandler()
+	if err != nil {
+		return nil, err
+	}
+	connections, err := adminClient.ListE2NodeConnections(context.Background(), &adminapi.ListE2NodeConnectionsRequest{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		connection, err := connections.Recv()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+		if connection != nil {
+			if connection.Id == nodeID {
+				ranFunctions = connection.RanFunctions
+			}
+		}
+	}
+	return ranFunctions, nil
 }
 
 // ConnectionHandler is a handler to manage E2 admin session

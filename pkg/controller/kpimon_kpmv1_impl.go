@@ -27,7 +27,8 @@ type V1KpiMonController struct {
 }
 
 // Run runs the kpimon controller for KPM v1.0
-func (v1 *V1KpiMonController) Run() {
+func (v1 *V1KpiMonController) Run(kpimonMetricMap map[int]string) {
+	v1.KpiMonMetricMap = kpimonMetricMap
 	v1.listenIndChan()
 }
 

@@ -29,7 +29,7 @@ func NewKpiMonController(indChan chan indication.Indication, smVersion string) K
 
 // KpiMonController is an interface of the controller for KPIMON
 type KpiMonController interface {
-	Run()
+	Run(map[int]string)
 	GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue
 	GetKpiMonMutex() *sync.RWMutex
 	listenIndChan()
@@ -39,9 +39,10 @@ type KpiMonController interface {
 // AbstractKpiMonController is an abstract struct for kpimon controller
 type AbstractKpiMonController struct {
 	KpiMonController
-	IndChan       chan indication.Indication
-	KpiMonResults map[KpiMonMetricKey]KpiMonMetricValue
-	KpiMonMutex   sync.RWMutex
+	IndChan         chan indication.Indication
+	KpiMonResults   map[KpiMonMetricKey]KpiMonMetricValue
+	KpiMonMutex     sync.RWMutex
+	KpiMonMetricMap map[int]string
 }
 
 // CellIdentity is the ID for each cell

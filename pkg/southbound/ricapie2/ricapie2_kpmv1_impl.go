@@ -47,14 +47,17 @@ var periodRanges = utils.PeriodRanges{
 
 func newV1E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string) *V1E2Session {
 	log.Info("Creating RICAPI E2Session for KPM v1.0")
+	kpimonMetricMap := make(map[int]string)
+	kpimonMetricMap[1] = "numActiveUEs"
 	return &V1E2Session{
 		AbstractE2Session: &AbstractE2Session{
-			E2SubEndpoint:  e2subEndpoint,
-			E2TEndpoint:    e2tEndpoint,
-			RicActionID:    types.RicActionID(ricActionID),
-			ReportPeriodMs: reportPeriodMs,
-			SMName:         smName,
-			SMVersion:      smVersion,
+			E2SubEndpoint:   e2subEndpoint,
+			E2TEndpoint:     e2tEndpoint,
+			RicActionID:     types.RicActionID(ricActionID),
+			ReportPeriodMs:  reportPeriodMs,
+			SMName:          smName,
+			SMVersion:       smVersion,
+			KpiMonMetricMap: kpimonMetricMap,
 		},
 	}
 }
@@ -228,4 +231,9 @@ func (s *V1E2Session) createEventTriggerData() []byte {
 func (s *V1E2Session) getReportPeriodFromAdmin() int32 {
 	rtPeriod := periodRanges.Search(int(s.ReportPeriodMs))
 	return int32(rtPeriod)
+}
+
+// GetKpiMonMetricMap returns the KpiMonMetricMap
+func (s *V1E2Session) GetKpiMonMetricMap(admin admin.E2AdminSession) (map[int]string, error) {
+	return s.KpiMonMetricMap, nil
 }
