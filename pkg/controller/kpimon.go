@@ -35,6 +35,7 @@ type KpiMonController interface {
 	SetGranularityPeriod(uint64)
 	listenIndChan()
 	parseIndMsg(indication.Indication)
+	flushResultMap()
 }
 
 // AbstractKpiMonController is an abstract struct for kpimon controller
@@ -95,4 +96,9 @@ func (c *AbstractKpiMonController) GetKpiMonResults() map[KpiMonMetricKey]KpiMon
 // SetGranularityPertiod returns the granularity period
 func (c *AbstractKpiMonController) SetGranularityPeriod(granularity uint64) {
 	c.GranulPeriod = granularity
+}
+
+// flushResultMap flushes Reuslt map - carefully use it: have to lock before we call this
+func (c *AbstractKpiMonController) flushResultMap() {
+	c.KpiMonResults = map[KpiMonMetricKey]KpiMonMetricValue{}
 }
