@@ -7,10 +7,12 @@ package controller
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/onosproject/onos-api/go/onos/ransim/types"
 	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
+	"strconv"
 	"time"
 )
 
@@ -74,7 +76,23 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
 
 	v2.KpiMonMutex.Lock()
-	v2.flushResultMap(indMessage.GetIndicationMessageFormat1().GetCellObjId().Value, plmnID, eci)
+	var cid string
+	if indMessage.GetIndicationMessageFormat1().GetCellObjId() == nil {
+		plmnIDInt, err := strconv.Atoi(plmnID)
+		if err != nil {
+			log.Errorf("Failed to convert plmnid (%s) from string to int: %v", plmnID, err)
+		}
+
+		eciInt, err := strconv.Atoi(eci)
+		if err != nil {
+			log.Errorf("Failed to convert eci (%s) from string to int: %v", eci, err)
+		}
+		cid = fmt.Sprintf("%d", types.ToECGI(types.PlmnID(plmnIDInt), types.ECI(eciInt)))
+	} else {
+		cid = indMessage.GetIndicationMessageFormat1().GetCellObjId().Value
+	}
+
+	v2.flushResultMap(cid, plmnID, eci)
 	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()); i++ {
 		for j := 0; j < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()); j++ {
 			metricValue := int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[j].GetInteger())
@@ -83,10 +101,10 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 			if indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue() == "" {
 				log.Debugf("Indication message does not have MeasName - use MeasID")
 				log.Debugf("Value in Indication message for type %v (MeasID-%d): %v", v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value)], int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value), metricValue)
-				v2.updateKpiMonResults(indMessage.GetIndicationMessageFormat1().GetCellObjId().Value, plmnID, eci, v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value)], metricValue, tmpTimestamp)
+				v2.updateKpiMonResults(cid, plmnID, eci, v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value)], metricValue, tmpTimestamp)
 			} else {
 				log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue(), metricValue)
-				v2.updateKpiMonResults(indMessage.GetIndicationMessageFormat1().GetCellObjId().Value, plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue(), metricValue, tmpTimestamp)
+				v2.updateKpiMonResults(cid, plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue(), metricValue, tmpTimestamp)
 			}
 		}
 	}

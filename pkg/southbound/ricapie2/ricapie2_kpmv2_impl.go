@@ -340,4 +340,3 @@ func (s *V2E2Session) createEventTriggerData() []byte {
 func (s *V2E2Session) getReportPeriodFromAdmin() int32 {
 	return int32(s.ReportPeriodMs)
 }
-
