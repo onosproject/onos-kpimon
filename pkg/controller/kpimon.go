@@ -72,7 +72,7 @@ func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string
 			PlmnID: plmnID,
 			ECI:    eci,
 		},
-		Metric: metricType,
+		Metric:    metricType,
 		Timestamp: timestamp,
 	}
 	value := KpiMonMetricValue{
@@ -93,7 +93,7 @@ func (c *AbstractKpiMonController) GetKpiMonResults() map[KpiMonMetricKey]KpiMon
 	return c.KpiMonResults
 }
 
-// SetGranularityPertiod returns the granularity period
+// SetGranularityPeriod returns the granularity period
 func (c *AbstractKpiMonController) SetGranularityPeriod(granularity uint64) {
 	c.GranulPeriod = granularity
 }

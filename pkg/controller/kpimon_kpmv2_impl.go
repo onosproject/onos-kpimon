@@ -63,7 +63,6 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 
 	log.Debugf("start timestamp: %d, %s (ns: %d / s: )", startTime, startTimeUnix, startTimeUnix.UnixNano(), startTimeUnix.Unix())
 
-
 	indMessage := e2sm_kpm_v2.E2SmKpmIndicationMessage{}
 	err = proto.Unmarshal(indMsg.Payload.Message, &indMessage)
 	if err != nil {
@@ -79,7 +78,7 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()); i++ {
 		for j := 0; j < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()); j++ {
 			metricValue := int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[j].GetInteger())
-			tmpTimestamp := uint64(startTimeUnixNano) + v2.GranulPeriod * uint64(1000000) * uint64(i)
+			tmpTimestamp := uint64(startTimeUnixNano) + v2.GranulPeriod*uint64(1000000)*uint64(i)
 			log.Debugf("Timestamp for %d-th element: %v", i, tmpTimestamp)
 			if indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue() == "" {
 				log.Debugf("Indication message does not have MeasName - use MeasID")
