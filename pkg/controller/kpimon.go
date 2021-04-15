@@ -65,13 +65,14 @@ type KpiMonMetricValue struct {
 	Value string
 }
 
-func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string, metricType string, metricValue int32) {
+func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string, metricType string, metricValue int32, timestamp uint64) {
 	key := KpiMonMetricKey{
 		CellIdentity: CellIdentity{
 			PlmnID: plmnID,
 			ECI:    eci,
 		},
 		Metric: metricType,
+		Timestamp: timestamp,
 	}
 	value := KpiMonMetricValue{
 		Value: fmt.Sprintf("%d", metricValue),

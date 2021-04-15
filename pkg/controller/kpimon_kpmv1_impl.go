@@ -88,7 +88,7 @@ func (v1 *V1KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	log.Debugf("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
 	v1.KpiMonMutex.Lock()
 	v1.updateKpiMonResults(plmnID, eci, "numActiveUEs",
-		indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
+		indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes(), 0)
 	v1.KpiMonMutex.Unlock()
 }
 

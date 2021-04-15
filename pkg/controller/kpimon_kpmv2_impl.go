@@ -58,7 +58,11 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	plmnID, eci, _ = v2.getCellIdentitiesFromHeader(indHeader.GetIndicationHeaderFormat1())
 	startTime := v2.getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
 
-	log.Debugf("start timestamp: %d, %s", startTime, time.Unix(int64(startTime), 0))
+	startTimeUnix := time.Unix(int64(startTime), 0)
+	startTimeUnixNano := startTimeUnix.UnixNano()
+
+	log.Debugf("start timestamp: %d, %s (ns: %d / s: )", startTime, startTimeUnix, startTimeUnix.UnixNano(), startTimeUnix.Unix())
+
 
 	indMessage := e2sm_kpm_v2.E2SmKpmIndicationMessage{}
 	err = proto.Unmarshal(indMsg.Payload.Message, &indMessage)
@@ -71,18 +75,22 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
 
 	v2.KpiMonMutex.Lock()
-	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[0].GetMeasRecord().GetValue()); i++ {
-		metricValue := int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[0].GetMeasRecord().GetValue()[i].GetInteger())
-
-		if indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue() == "" {
-			log.Debugf("Indication message does not have MeasName - use MeasID")
-			log.Debugf("Value in Indication message for type %v (MeasID-%d): %v", v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasId().Value)], int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasId().Value), metricValue)
-			v2.updateKpiMonResults(plmnID, eci, v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasId().Value)], metricValue)
-		} else {
-			log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
-			v2.updateKpiMonResults(plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[i].GetMeasType().GetMeasName().GetValue(), metricValue)
+	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()); i++ {
+		for j := 0; j < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()); j++ {
+			metricValue := int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[j].GetInteger())
+			tmpTimestamp := uint64(startTimeUnixNano) + v2.GranulPeriod * uint64(1000000) * uint64(i)
+			log.Debugf("Timestamp for %d-th element: %v", i, tmpTimestamp)
+			if indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue() == "" {
+				log.Debugf("Indication message does not have MeasName - use MeasID")
+				log.Debugf("Value in Indication message for type %v (MeasID-%d): %v", v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value)], int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value), metricValue)
+				v2.updateKpiMonResults(plmnID, eci, v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value)], metricValue, tmpTimestamp)
+			} else {
+				log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue(), metricValue)
+				v2.updateKpiMonResults(plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue(), metricValue, tmpTimestamp)
+			}
 		}
 	}
+
 	log.Debugf("KpiMonResult: %v", v2.KpiMonResults)
 	v2.KpiMonMutex.Unlock()
 }
@@ -120,8 +128,8 @@ func (v2 *V2KpiMonController) getCellIdentitiesFromHeader(header *e2sm_kpm_v2.E2
 	return plmnID, eci, nil
 }
 
-func (v2 *V2KpiMonController) getTimeStampFromHeader(header *e2sm_kpm_v2.E2SmKpmIndicationHeaderFormat1) uint32 {
+func (v2 *V2KpiMonController) getTimeStampFromHeader(header *e2sm_kpm_v2.E2SmKpmIndicationHeaderFormat1) uint64 {
 	timeBytes := (*header).GetColletStartTime().Value
-	timeInt64 := binary.BigEndian.Uint32(timeBytes)
-	return timeInt64
+	timeInt32 := binary.BigEndian.Uint32(timeBytes)
+	return uint64(timeInt32)
 }
