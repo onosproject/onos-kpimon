@@ -35,7 +35,7 @@ type KpiMonController interface {
 	SetGranularityPeriod(uint64)
 	listenIndChan()
 	parseIndMsg(indication.Indication)
-	flushResultMap(string, string)
+	flushResultMap(string, string, string)
 }
 
 // AbstractKpiMonController is an abstract struct for kpimon controller
@@ -52,6 +52,7 @@ type AbstractKpiMonController struct {
 type CellIdentity struct {
 	PlmnID string
 	ECI    string
+	CellID string
 }
 
 // KpiMonMetricKey is the key of monitoring result map
@@ -66,11 +67,12 @@ type KpiMonMetricValue struct {
 	Value string
 }
 
-func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string, metricType string, metricValue int32, timestamp uint64) {
+func (c *AbstractKpiMonController) updateKpiMonResults(cellID string, plmnID string, eci string, metricType string, metricValue int32, timestamp uint64) {
 	key := KpiMonMetricKey{
 		CellIdentity: CellIdentity{
 			PlmnID: plmnID,
 			ECI:    eci,
+			CellID: cellID,
 		},
 		Metric:    metricType,
 		Timestamp: timestamp,
@@ -99,9 +101,9 @@ func (c *AbstractKpiMonController) SetGranularityPeriod(granularity uint64) {
 }
 
 // flushResultMap flushes Reuslt map - carefully use it: have to lock before we call this
-func (c *AbstractKpiMonController) flushResultMap(plmnID string, eci string) {
+func (c *AbstractKpiMonController) flushResultMap(cellID string, plmnID string, eci string) {
 	for k := range c.KpiMonResults {
-		if k.CellIdentity.PlmnID == plmnID && k.CellIdentity.ECI == eci {
+		if k.CellIdentity.CellID == cellID && k.CellIdentity.PlmnID == plmnID && k.CellIdentity.ECI == eci {
 			delete(c.KpiMonResults, k)
 		}
 	}
