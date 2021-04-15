@@ -55,6 +55,7 @@ type Manager interface {
 	registerConfigurable() error
 	startNorthboundServer() error
 	getReportPeriod() (uint64, error)
+	getGranularityPeriod() (uint64, error)
 }
 
 // AbstractManager is an abstract struct for manager
@@ -118,7 +119,15 @@ func (m *AbstractManager) start() error {
 		log.Errorf("Failed to get report period so period is set to 30ms: %v", err)
 		period = 30
 	}
+	granularity, err := m.getGranularityPeriod()
+	if err != nil {
+		log.Errorf("Failed to get granularity period so period is set to the report period: %v", err)
+		granularity = period
+	}
+
 	m.Sessions.E2Session.SetReportPeriodMs(period)
+	m.Sessions.E2Session.SetGranularityMs(granularity)
+	m.Ctrls.KpiMonController.SetGranularityPeriod(granularity)
 	m.Sessions.E2Session.SetAppConfig(m.Config.AppConfig)
 
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
@@ -169,5 +178,16 @@ func (m *AbstractManager) getReportPeriod() (uint64, error) {
 	}
 
 	log.Infof("Received period value: %v", val)
+	return val, nil
+}
+
+func (m *AbstractManager) getGranularityPeriod() (uint64, error) {
+	granularity, _ := m.Config.AppConfig.Get(utils.GranularityPeriodConfigPath)
+	val, err := configutils.ToUint64(granularity.Value)
+	if err != nil {
+		log.Error(err)
+		return 0, err
+	}
+	log.Infof("Received granularity period value: %v", val)
 	return val, nil
 }

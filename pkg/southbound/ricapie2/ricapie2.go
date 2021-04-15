@@ -38,6 +38,7 @@ func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, r
 type E2Session interface {
 	Run(chan indication.Indication, admin.E2AdminSession)
 	SetReportPeriodMs(uint64)
+	SetGranularityMs(uint64)
 	SetAppConfig(*app.Config)
 	GetKpiMonMetricMap() map[int]string
 	updateReportPeriod(event.Event) error
@@ -55,6 +56,7 @@ type AbstractE2Session struct {
 	E2TEndpoint     string
 	RicActionID     types.RicActionID
 	ReportPeriodMs  uint64
+	GranularityMs   uint64
 	AppConfig       *app.Config
 	EventMutex      sync.RWMutex
 	ConfigEventCh   chan event.Event
@@ -66,6 +68,11 @@ type AbstractE2Session struct {
 // SetReportPeriodMs changes the ReportPeriodMS
 func (s *AbstractE2Session) SetReportPeriodMs(period uint64) {
 	s.ReportPeriodMs = period
+}
+
+// SetGranularityMs changes the GranularityPeriodMS
+func (s *AbstractE2Session) SetGranularityMs(granularity uint64) {
+	s.GranularityMs = granularity
 }
 
 // SetAppConfig sets AppConfig

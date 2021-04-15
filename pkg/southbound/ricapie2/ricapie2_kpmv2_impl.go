@@ -182,7 +182,7 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 			return nil, err
 		}
 
-		actionDefinitionCell, err := pdubuilder.CreateActionDefinitionFormat1(cellObjID, measInfoList, int32(s.ReportPeriodMs), subID)
+		actionDefinitionCell, err := pdubuilder.CreateActionDefinitionFormat1(cellObjID, measInfoList, int32(s.GranularityMs), subID)
 		if err != nil {
 			return nil, err
 		}

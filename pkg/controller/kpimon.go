@@ -32,6 +32,7 @@ type KpiMonController interface {
 	Run(map[int]string)
 	GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue
 	GetKpiMonMutex() *sync.RWMutex
+	SetGranularityPeriod(uint64)
 	listenIndChan()
 	parseIndMsg(indication.Indication)
 }
@@ -43,6 +44,7 @@ type AbstractKpiMonController struct {
 	KpiMonResults   map[KpiMonMetricKey]KpiMonMetricValue
 	KpiMonMutex     sync.RWMutex
 	KpiMonMetricMap map[int]string
+	GranulPeriod    uint64
 }
 
 // CellIdentity is the ID for each cell
@@ -54,6 +56,7 @@ type CellIdentity struct {
 // KpiMonMetricKey is the key of monitoring result map
 type KpiMonMetricKey struct {
 	CellIdentity CellIdentity
+	Timestamp    uint64
 	Metric       string
 }
 
@@ -86,4 +89,9 @@ func (c *AbstractKpiMonController) GetKpiMonMutex() *sync.RWMutex {
 // GetKpiMonResults returns kpimon result map for all keys
 func (c *AbstractKpiMonController) GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue {
 	return c.KpiMonResults
+}
+
+// SetGranularityPertiod returns the granularity period
+func (c *AbstractKpiMonController) SetGranularityPeriod(granularity uint64) {
+	c.GranulPeriod = granularity
 }

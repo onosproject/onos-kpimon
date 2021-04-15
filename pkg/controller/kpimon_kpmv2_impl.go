@@ -5,11 +5,13 @@
 package controller
 
 import (
+	"encoding/binary"
 	"fmt"
 	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
+	"time"
 )
 
 func newV2KpiMonController(indChan chan indication.Indication) *V2KpiMonController {
@@ -54,6 +56,9 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	log.Debugf("E2SMKPM Ind Header: %v", indHeader.GetE2SmKpmIndicationHeader())
 
 	plmnID, eci, _ = v2.getCellIdentitiesFromHeader(indHeader.GetIndicationHeaderFormat1())
+	startTime := v2.getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
+
+	log.Debugf("start timestamp: %d, %s", startTime, time.Unix(int64(startTime), 0))
 
 	indMessage := e2sm_kpm_v2.E2SmKpmIndicationMessage{}
 	err = proto.Unmarshal(indMsg.Payload.Message, &indMessage)
@@ -113,4 +118,10 @@ func (v2 *V2KpiMonController) getCellIdentitiesFromHeader(header *e2sm_kpm_v2.E2
 		log.Errorf("Error when Parsing ECI in indication message header - %v", header.GetKpmNodeId())
 	}
 	return plmnID, eci, nil
+}
+
+func (v2 *V2KpiMonController) getTimeStampFromHeader(header *e2sm_kpm_v2.E2SmKpmIndicationHeaderFormat1) uint32 {
+	timeBytes := (*header).GetColletStartTime().Value
+	timeInt64 := binary.BigEndian.Uint32(timeBytes)
+	return timeInt64
 }
