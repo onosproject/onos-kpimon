@@ -68,7 +68,7 @@ func (s Server) GetMetrics(ctx context.Context, request *kpimonapi.GetRequest) (
 
 	s.Ctrl.GetKpiMonMutex().Lock()
 	for key, value := range s.Ctrl.GetKpiMonResults() {
-		attr[fmt.Sprintf("%s:%s:%s", key.CellIdentity.PlmnID, key.CellIdentity.ECI, key.Metric)] = value.Value
+		attr[fmt.Sprintf("%s:%s:%s:%s:%d", key.CellIdentity.CellID, key.CellIdentity.PlmnID, key.CellIdentity.ECI, key.Metric, key.Timestamp)] = value.Value
 	}
 	s.Ctrl.GetKpiMonMutex().Unlock()
 

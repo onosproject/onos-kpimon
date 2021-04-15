@@ -32,8 +32,10 @@ type KpiMonController interface {
 	Run(map[int]string)
 	GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue
 	GetKpiMonMutex() *sync.RWMutex
+	SetGranularityPeriod(uint64)
 	listenIndChan()
 	parseIndMsg(indication.Indication)
+	flushResultMap(string, string, string)
 }
 
 // AbstractKpiMonController is an abstract struct for kpimon controller
@@ -43,17 +45,20 @@ type AbstractKpiMonController struct {
 	KpiMonResults   map[KpiMonMetricKey]KpiMonMetricValue
 	KpiMonMutex     sync.RWMutex
 	KpiMonMetricMap map[int]string
+	GranulPeriod    uint64
 }
 
 // CellIdentity is the ID for each cell
 type CellIdentity struct {
 	PlmnID string
 	ECI    string
+	CellID string
 }
 
 // KpiMonMetricKey is the key of monitoring result map
 type KpiMonMetricKey struct {
 	CellIdentity CellIdentity
+	Timestamp    uint64
 	Metric       string
 }
 
@@ -62,13 +67,15 @@ type KpiMonMetricValue struct {
 	Value string
 }
 
-func (c *AbstractKpiMonController) updateKpiMonResults(plmnID string, eci string, metricType string, metricValue int32) {
+func (c *AbstractKpiMonController) updateKpiMonResults(cellID string, plmnID string, eci string, metricType string, metricValue int32, timestamp uint64) {
 	key := KpiMonMetricKey{
 		CellIdentity: CellIdentity{
 			PlmnID: plmnID,
 			ECI:    eci,
+			CellID: cellID,
 		},
-		Metric: metricType,
+		Metric:    metricType,
+		Timestamp: timestamp,
 	}
 	value := KpiMonMetricValue{
 		Value: fmt.Sprintf("%d", metricValue),
@@ -86,4 +93,18 @@ func (c *AbstractKpiMonController) GetKpiMonMutex() *sync.RWMutex {
 // GetKpiMonResults returns kpimon result map for all keys
 func (c *AbstractKpiMonController) GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue {
 	return c.KpiMonResults
+}
+
+// SetGranularityPeriod returns the granularity period
+func (c *AbstractKpiMonController) SetGranularityPeriod(granularity uint64) {
+	c.GranulPeriod = granularity
+}
+
+// flushResultMap flushes Reuslt map - carefully use it: have to lock before we call this
+func (c *AbstractKpiMonController) flushResultMap(cellID string, plmnID string, eci string) {
+	for k := range c.KpiMonResults {
+		if k.CellIdentity.CellID == cellID && k.CellIdentity.PlmnID == plmnID && k.CellIdentity.ECI == eci {
+			delete(c.KpiMonResults, k)
+		}
+	}
 }

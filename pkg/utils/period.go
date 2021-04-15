@@ -13,6 +13,8 @@ import (
 const (
 	// ReportPeriodConfigPath report period config path
 	ReportPeriodConfigPath = "/report_period/interval"
+	// GranularityPeriodConfigPath granularity period config path
+	GranularityPeriodConfigPath = "/report_period/granularity"
 )
 
 // PeriodRange is a tuple of min and max value for each RT Period IE value

@@ -10,6 +10,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
+	"time"
 )
 
 func newV1KpiMonController(indChan chan indication.Indication) *V1KpiMonController {
@@ -87,8 +88,9 @@ func (v1 *V1KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	}
 	log.Debugf("numUEs: %v", indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
 	v1.KpiMonMutex.Lock()
-	v1.updateKpiMonResults(plmnID, eci, "numActiveUEs",
-		indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes())
+	v1.flushResultMap("N/A", plmnID, eci)
+	v1.updateKpiMonResults("N/A", plmnID, eci, "numActiveUEs",
+		indMessage.GetIndicationMessageFormat1().GetPmContainers()[0].GetPerformanceContainer().GetOCuCp().GetCuCpResourceStatus().GetNumberOfActiveUes(), uint64(time.Now().UnixNano()))
 	v1.KpiMonMutex.Unlock()
 }
 
