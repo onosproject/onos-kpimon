@@ -75,7 +75,7 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
 
 	v2.KpiMonMutex.Lock()
-	v2.flushResultMap()
+	v2.flushResultMap(plmnID, eci)
 	for i := 0; i < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()); i++ {
 		for j := 0; j < len(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()); j++ {
 			metricValue := int32(indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()[i].GetMeasRecord().GetValue()[j].GetInteger())
@@ -91,7 +91,6 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 			}
 		}
 	}
-
 	log.Debugf("KpiMonResult: %v", v2.KpiMonResults)
 	v2.KpiMonMutex.Unlock()
 }
