@@ -205,11 +205,16 @@ func (s *V2E2Session) manageConnection(indChan chan indication.Indication, nodeI
 	}
 }
 
-func (s *V2E2Session) createSubscriptionRequestWithActionDefinition(nodeID string, actionDef *e2sm_kpm_v2.E2SmKpmActionDefinition) (subscription.SubscriptionDetails, error) {
-	protoBytesCell, err := proto.Marshal(actionDef)
+func (s *V2E2Session) createSubscriptionRequestWithActionDefinition(nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) (subscription.SubscriptionDetails, error) {
+	actionDefMap, err := s.createActionDefinition(ranFuncDesc)
 	if err != nil {
 		return subscription.SubscriptionDetails{}, err
 	}
+	actionDefinition, err := s.createSubscriptionActionsList(actionDefMap)
+	if err != nil {
+		return subscription.SubscriptionDetails{}, err
+	}
+
 	sub := subscription.SubscriptionDetails{
 		E2NodeID: subscription.E2NodeID(nodeID),
 		ServiceModel: subscription.ServiceModel{
@@ -222,24 +227,39 @@ func (s *V2E2Session) createSubscriptionRequestWithActionDefinition(nodeID strin
 				Data:     s.createEventTriggerData(),
 			},
 		},
-		Actions: []subscription.Action{
-			{
-				ID:   int32(s.RicActionID),
-				Type: subscription.ActionType_ACTION_TYPE_REPORT,
-				SubsequentAction: &subscription.SubsequentAction{
-					Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
-					TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
-				},
-				Payload: subscription.Payload{
-					Encoding: subscription.Encoding_ENCODING_PROTO,
-					Data:     protoBytesCell,
-				},
-			},
-		},
+		Actions: actionDefinition,
 	}
 	log.Debugf("subscription request: %v", sub)
 
 	return sub, nil
+}
+
+func (s *V2E2Session) createSubscriptionActionsList(e2smKpmActionDefinitions map[string]*e2sm_kpm_v2.E2SmKpmActionDefinition) ([]subscription.Action, error) {
+	result := make([]subscription.Action, 0)
+	i := int32(0)
+	for _, v := range e2smKpmActionDefinitions {
+		protoBytesCell, err := proto.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+
+		tmpAction := &subscription.Action{
+			ID:   int32(s.RicActionID) + i,
+			Type: subscription.ActionType_ACTION_TYPE_REPORT,
+			SubsequentAction: &subscription.SubsequentAction{
+				Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
+				TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
+			},
+			Payload: subscription.Payload{
+				Encoding: subscription.Encoding_ENCODING_PROTO,
+				Data:     protoBytesCell,
+			},
+		}
+
+		result = append(result, *tmpAction)
+		i++
+	}
+	return result, nil
 }
 
 func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) error {
@@ -280,23 +300,16 @@ func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, n
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	actionDefMap, err := s.createActionDefinition(ranFuncDesc)
+	subReq, err := s.createSubscriptionRequestWithActionDefinition(nodeID, ranFuncDesc)
 	if err != nil {
+		log.Error("Can't create SubsdcriptionRequest message")
 		return err
 	}
 
-	for _, v := range actionDefMap {
-		subReq, err := s.createSubscriptionRequestWithActionDefinition(nodeID, v)
-		if err != nil {
-			log.Error("Can't create SubsdcriptionRequest message")
-			return err
-		}
-
-		s.E2SubInstance, err = client.Subscribe(ctx, subReq, ch)
-		if err != nil {
-			log.Error("Can't send SubscriptionRequest message")
-			return err
-		}
+	s.E2SubInstance, err = client.Subscribe(ctx, subReq, ch)
+	if err != nil {
+		log.Error("Can't send SubscriptionRequest message")
+		return err
 	}
 
 	log.Infof("Start forwarding Indication message to KPIMON controller")
