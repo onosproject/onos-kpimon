@@ -244,7 +244,7 @@ func (s *V2E2Session) createSubscriptionActionsList(e2smKpmActionDefinitions map
 		}
 
 		tmpAction := &subscription.Action{
-			ID:   int32(s.RicActionID)+i,
+			ID:   int32(s.RicActionID) + i,
 			Type: subscription.ActionType_ACTION_TYPE_REPORT,
 			SubsequentAction: &subscription.SubsequentAction{
 				Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
@@ -299,7 +299,6 @@ func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, n
 	ch := make(chan indication.Indication)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 
 	subReq, err := s.createSubscriptionRequestWithActionDefinition(nodeID, ranFuncDesc)
 	if err != nil {
