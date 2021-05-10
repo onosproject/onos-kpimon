@@ -15,6 +15,7 @@ import (
 	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+	sdkSub "github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 	"google.golang.org/protobuf/proto"
 	"strconv"
 	"strings"
@@ -31,11 +32,13 @@ func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32,
 		AbstractE2Session: &AbstractE2Session{
 			E2SubEndpoint:   e2subEndpoint,
 			E2TEndpoint:     e2tEndpoint,
+			E2SubInstances:  make(map[string]sdkSub.Context),
 			RicActionID:     types.RicActionID(ricActionID),
 			ReportPeriodMs:  reportPeriodMs,
 			SMName:          smName,
 			SMVersion:       smVersion,
 			KpiMonMetricMap: kpimonMetricMap,
+			SubDelTriggers:  make(map[string]chan bool),
 		},
 	}
 }
@@ -52,7 +55,6 @@ func (s *V2E2Session) Run(indChan chan indication.Indication, adminSession admin
 	go func() {
 		_ = s.watchConfigChanges()
 	}()
-	s.SubDelTrigger = make(chan bool)
 	s.manageConnections(indChan, adminSession)
 }
 
@@ -97,10 +99,12 @@ func (s *V2E2Session) manageConnections(indChan chan indication.Indication, admi
 		var wg sync.WaitGroup
 		for _, id := range nodeIDs {
 			wg.Add(1)
+			if _, ok := s.SubDelTriggers[id]; !ok {
+				s.SubDelTriggers[id] = make(chan bool)
+			}
 			go func(id string, wg *sync.WaitGroup) {
 				defer wg.Done()
 				for {
-
 					ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
 					if err != nil {
 						log.Error(err)
@@ -306,18 +310,21 @@ func (s *V2E2Session) createE2Subscription(indChan chan indication.Indication, n
 		return err
 	}
 
-	s.E2SubInstance, err = client.Subscribe(ctx, subReq, ch)
+	log.Infof("Start subscribe - E2Node: %v", nodeID)
+	e2subInst, err := client.Subscribe(ctx, subReq, ch)
+	s.E2SubInstances[nodeID] = e2subInst
+
 	if err != nil {
 		log.Error("Can't send SubscriptionRequest message")
 		return err
 	}
 
-	log.Infof("Start forwarding Indication message to KPIMON controller")
+	log.Infof("Start forwarding Indication message to KPIMON controller - E2Node: %v", nodeID)
 	for {
 		select {
 		case indMsg := <-ch:
 			indChan <- indMsg
-		case trigger := <-s.SubDelTrigger:
+		case trigger := <-s.SubDelTriggers[nodeID]:
 			if trigger {
 				log.Info("Reset indChan to close subscription")
 				return nil

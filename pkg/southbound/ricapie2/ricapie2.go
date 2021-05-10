@@ -44,15 +44,16 @@ type E2Session interface {
 	updateReportPeriod(event.Event) error
 	processConfigEvents()
 	watchConfigChanges() error
-	deleteE2Subscription() error
+	deleteE2Subscription(string) error
+	deleteE2Subscriptions() error
 }
 
 // AbstractE2Session is an abstract struct of E2 session
 type AbstractE2Session struct {
 	E2Session
 	E2SubEndpoint   string
-	E2SubInstance   sdkSub.Context
-	SubDelTrigger   chan bool
+	E2SubInstances  map[string]sdkSub.Context
+	SubDelTriggers  map[string]chan bool
 	E2TEndpoint     string
 	RicActionID     types.RicActionID
 	ReportPeriodMs  uint64
@@ -101,12 +102,12 @@ func (s *AbstractE2Session) updateReportPeriod(event event.Event) error {
 func (s *AbstractE2Session) processConfigEvents() {
 	for configEvent := range s.ConfigEventCh {
 		if configEvent.Key == utils.ReportPeriodConfigPath {
-			log.Debug("Report Period: Config Event received:", configEvent)
+			log.Infof("Report Period: Config Event received: %v", configEvent)
 			err := s.updateReportPeriod(configEvent)
 			if err != nil {
 				log.Error(err)
 			}
-			err = s.deleteE2Subscription()
+			err = s.deleteE2Subscriptions()
 			if err != nil {
 				log.Error(err)
 			}
@@ -125,13 +126,22 @@ func (s *AbstractE2Session) watchConfigChanges() error {
 	return nil
 }
 
-func (s *AbstractE2Session) deleteE2Subscription() error {
-	err := s.E2SubInstance.Close()
-	if err != nil {
-		log.Errorf("Failed to delete E2 subscription: %v", err)
+func (s *AbstractE2Session) deleteE2Subscriptions() error {
+	for k := range s.E2SubInstances {
+		err := s.deleteE2Subscription(k)
+		if err != nil {
+			log.Errorf("Failed to delete E2 subscription: %v", err)
+			return err
+		}
+		s.SubDelTriggers[k] <- true
 	}
-	s.SubDelTrigger <- true
 	return nil
+}
+
+func (s *AbstractE2Session) deleteE2Subscription(e2NodeID string) error {
+	log.Infof("Start deleting subscription - E2NodeID: %v", e2NodeID)
+	err := s.E2SubInstances[e2NodeID].Close()
+	return err
 }
 
 // GetKpiMonMetricMap returns the KpiMonMetricMap
