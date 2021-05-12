@@ -108,7 +108,7 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 			}
 		}
 	}
-	log.Debugf("KpiMonResult: %v", v2.KpiMonResults)
+	//log.Debugf("KpiMonResult: %v", v2.KpiMonResults)
 	v2.KpiMonMutex.Unlock()
 }
 
