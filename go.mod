@@ -3,11 +3,10 @@ module github.com/onosproject/onos-kpimon
 go 1.14
 
 require (
-	github.com/envoyproxy/protoc-gen-validate v0.5.1 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/onosproject/onos-api/go v0.7.24
-	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.19
-	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.19
+	github.com/envoyproxy/protoc-gen-validate v0.6.1 // indirect
+	github.com/onosproject/onos-api/go v0.7.37
+	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.26
+	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.26
 	github.com/onosproject/onos-e2t v0.7.13
 	github.com/onosproject/onos-lib-go v0.7.7
 	github.com/onosproject/onos-ric-sdk-go v0.7.11

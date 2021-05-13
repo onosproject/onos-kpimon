@@ -186,7 +186,7 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 			return nil, err
 		}
 
-		actionDefinitionCell, err := pdubuilder.CreateActionDefinitionFormat1(cellObjID, measInfoList, int32(s.GranularityMs), subID)
+		actionDefinitionCell, err := pdubuilder.CreateActionDefinitionFormat1(cellObjID, measInfoList, uint32(s.GranularityMs), subID)
 		if err != nil {
 			return nil, err
 		}
@@ -357,6 +357,6 @@ func (s *V2E2Session) createEventTriggerData() []byte {
 	return protoBytes
 }
 
-func (s *V2E2Session) getReportPeriodFromAdmin() int32 {
-	return int32(s.ReportPeriodMs)
+func (s *V2E2Session) getReportPeriodFromAdmin() uint32 {
+	return uint32(s.ReportPeriodMs)
 }

@@ -20,7 +20,7 @@ github.com/eapache/go-resiliency/breaker
 github.com/eapache/go-xerial-snappy
 # github.com/eapache/queue v1.1.0
 github.com/eapache/queue
-# github.com/envoyproxy/protoc-gen-validate v0.5.1
+# github.com/envoyproxy/protoc-gen-validate v0.6.1
 ## explicit
 github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/ericchiang/oidc v0.0.0-20160908143337-11f62933e071
@@ -34,7 +34,6 @@ github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/mock v1.4.4
 github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.5.2
-## explicit
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
@@ -77,7 +76,7 @@ github.com/magiconair/properties
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.3.3
 github.com/mitchellh/mapstructure
-# github.com/onosproject/onos-api/go v0.7.24
+# github.com/onosproject/onos-api/go v0.7.37
 ## explicit
 github.com/onosproject/onos-api/go/onos/e2sub/endpoint
 github.com/onosproject/onos-api/go/onos/e2sub/subscription
@@ -86,11 +85,11 @@ github.com/onosproject/onos-api/go/onos/e2t/admin
 github.com/onosproject/onos-api/go/onos/e2t/e2
 github.com/onosproject/onos-api/go/onos/kpimon
 github.com/onosproject/onos-api/go/onos/ransim/types
-# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.19
+# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm v0.7.26
 ## explicit
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/v1beta1/e2sm-kpm-ies
-# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.19
+# github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.26
 ## explicit
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/pdubuilder
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2
@@ -201,7 +200,7 @@ golang.org/x/net/trace
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20201113233024-12cec1faf1ba
+# golang.org/x/sys v0.0.0-20210317225723-c4fcb01b228e
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.4
