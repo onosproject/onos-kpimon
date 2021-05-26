@@ -40,12 +40,15 @@ func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32,
 			KpiMonMetricMap: kpimonMetricMap,
 			SubDelTriggers:  make(map[string]chan bool),
 		},
+		SubIDCounter: 0,
 	}
 }
 
 // V2E2Session is an E2 session for KPM v2.0
 type V2E2Session struct {
 	*AbstractE2Session
+	SubIDCounter      int64
+	SubIDCouneerMutex sync.RWMutex
 }
 
 // Run starts E2 session
@@ -180,15 +183,14 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 			//}
 			//measInfoList.Value = append(measInfoList.Value, tmpMeasInfoItem2)
 		}
-		cgiForSubID, err := s.getCgiFromRanFuncDesc(cellMeasObjItem.GetCellGlobalId())
-		if err != nil {
-			log.Warn(err.Error())
-		}
-		subsIDString := fmt.Sprintf("%d%d", s.RicActionID, cgiForSubID)
-		subID, err := strconv.ParseInt(subsIDString, 10, 64)
-		if err != nil {
-			return nil, err
-		}
+
+		// Generate subscription ID - started from 1 to maximum int64
+		s.SubIDCouneerMutex.Lock()
+		s.SubIDCounter++
+		subID := s.SubIDCounter
+		s.SubIDCouneerMutex.Unlock()
+
+		log.Debugf("subID for %v: %v", cellObjID, subID)
 
 		actionDefinitionCell, err := pdubuilder.CreateActionDefinitionFormat1(cellObjID, measInfoList, uint32(s.GranularityMs), subID)
 		if err != nil {
@@ -211,16 +213,6 @@ func (s *V2E2Session) manageConnection(indChan chan indication.Indication, nodeI
 	if err != nil {
 		log.Errorf("Error happens when creating E2 subscription - %s", err)
 	}
-}
-
-// getCgiFromRanFuncDesc extracts the CGI value from either EUTRACGI or NRCGI
-func (s *V2E2Session) getCgiFromRanFuncDesc(cellGlobalID *e2sm_kpm_v2.CellGlobalId) (uint64, error) {
-	if cellGlobalID.GetEUtraCgi() != nil {
-		return cellGlobalID.GetEUtraCgi().EUtracellIdentity.Value.Value, nil
-	} else if cellGlobalID.GetNrCgi() != nil {
-		return cellGlobalID.GetNrCgi().NRcellIdentity.Value.Value, nil
-	}
-	return 0, fmt.Errorf("CGI is neither EUTRACGI nor NRCGI - set CGI to 0")
 }
 
 func (s *V2E2Session) createSubscriptionRequestWithActionDefinition(nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) (subscription.SubscriptionDetails, error) {
