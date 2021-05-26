@@ -215,16 +215,6 @@ func (s *V2E2Session) manageConnection(indChan chan indication.Indication, nodeI
 	}
 }
 
-// getCgiFromRanFuncDesc extracts the CGI value from either EUTRACGI or NRCGI
-func (s *V2E2Session) getCgiFromRanFuncDesc(cellGlobalID *e2sm_kpm_v2.CellGlobalId) (uint64, error) {
-	if cellGlobalID.GetEUtraCgi() != nil {
-		return cellGlobalID.GetEUtraCgi().EUtracellIdentity.Value.Value, nil
-	} else if cellGlobalID.GetNrCgi() != nil {
-		return cellGlobalID.GetNrCgi().NRcellIdentity.Value.Value, nil
-	}
-	return 0, fmt.Errorf("CGI is neither EUTRACGI nor NRCGI - set CGI to 0")
-}
-
 func (s *V2E2Session) createSubscriptionRequestWithActionDefinition(nodeID string, ranFuncDesc *e2sm_kpm_v2.E2SmKpmRanfunctionDescription) (subscription.SubscriptionDetails, error) {
 	actionDefMap, err := s.createActionDefinition(ranFuncDesc)
 	if err != nil {
