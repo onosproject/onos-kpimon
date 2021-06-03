@@ -197,7 +197,8 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 			return nil, err
 		}
 
-		e2smKpmActionDefinitionCell, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(1, actionDefinitionCell)
+		ricStyleType := ranFuncDesc.GetRicReportStyleList()[0].GetRicReportStyleType().GetValue()
+		e2smKpmActionDefinitionCell, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(ricStyleType, actionDefinitionCell)
 		if err != nil {
 			return nil, err
 		}
