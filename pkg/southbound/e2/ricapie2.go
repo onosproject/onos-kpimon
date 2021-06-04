@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package ricapie2
+package e2
 
 import (
 	"context"
@@ -125,9 +125,6 @@ func (s *E2Session) Run(indChan chan indication.Indication, adminSession admin.E
 		_ = s.watchConfigChanges()
 	}()
 	s.manageConnections(indChan, adminSession)
-}
-
-func (s *E2Session) watchE2Nodes() {
 }
 
 func (s *E2Session) manageConnections(indChan chan indication.Indication, adminSession admin.E2AdminSession) {

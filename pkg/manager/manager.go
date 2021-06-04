@@ -10,7 +10,8 @@ import (
 	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
 	"github.com/onosproject/onos-kpimon/pkg/rnib"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
-	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
+	"github.com/onosproject/onos-kpimon/pkg/southbound/e2"
+	"github.com/onosproject/onos-kpimon/pkg/southbound/e2/subscription"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
@@ -39,11 +40,17 @@ func NewManager(config Config) *Manager {
 	if err != nil {
 		log.Warn(err)
 	}
-	topoClient, err := rnib.NewClient()
+
+	e2Client := e2.NewE2Client(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, config.SMName, config.SMVersion, metricStore, appCfg)
+
+	subManager, err := subscription.NewManager(
+		subscription.WithE2SubAddress("onos-e2sub", 5150),
+		subscription.WithE2TAddress("onos-e2t", 5150),
+		subscription.WithServiceModel("oran-e2sm-kpm", "v2"))
+
 	if err != nil {
 		log.Warn(err)
 	}
-	e2Client := ricapie2.NewE2Client(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, config.SMName, config.SMVersion, metricStore, appCfg)
 
 	manager := &Manager{
 		config:       config,
@@ -52,7 +59,7 @@ func NewManager(config Config) *Manager {
 		e2Client:     e2Client,
 		monitor:      monitoring.NewMonitor(indCh, appCfg),
 		metricStore:  metricStore,
-		topoClient:   topoClient,
+		subManager:   subManager,
 	}
 	return manager
 }
@@ -61,12 +68,13 @@ func NewManager(config Config) *Manager {
 type Manager struct {
 	appConfig    appConfig.Config
 	config       Config
-	e2Client     ricapie2.E2Client
+	e2Client     e2.E2Client
 	adminSession admin.E2AdminSession
 	topoClient   *rnib.Client
 	monitor      *monitoring.Monitor
 	metricStore  map[int]string
 	indChan      chan indication.Indication
+	subManager   subscription.Manager
 }
 
 // Run runs KPIMON manager
@@ -83,13 +91,18 @@ func (m *Manager) Close() {
 }
 
 func (m *Manager) start() error {
-	err := m.startNorthboundServer()
+	/*err := m.startNorthboundServer()
+	if err != nil {
+		return err
+	}*/
+
+	err := m.subManager.Start()
 	if err != nil {
 		return err
 	}
 
-	go m.e2Client.Run(m.indChan, m.adminSession)
-	go m.monitor.Run(m.metricStore)
+	//go m.e2Client.Run(m.indChan, m.adminSession)
+	//go m.monitor.Run(m.metricStore)
 
 	return nil
 }
