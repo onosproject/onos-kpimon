@@ -8,11 +8,11 @@ import (
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
+	"github.com/onosproject/onos-kpimon/pkg/rnib"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 )
 
@@ -26,7 +26,6 @@ type Config struct {
 	E2tEndpoint   string
 	E2SubEndpoint string
 	GRPCPort      int
-	AppConfig     *app.Config
 	RicActionID   int32
 	SMName        string
 	SMVersion     string
@@ -35,31 +34,25 @@ type Config struct {
 // NewManager generates the new KPIMON xAPP manager
 func NewManager(config Config) *Manager {
 	indCh := make(chan indication.Indication)
-	kpiMonMetricMap := make(map[int]string)
+	metricStore := make(map[int]string)
 	appCfg, err := appConfig.NewConfig()
 	if err != nil {
 		log.Warn(err)
 	}
-
-	e2Session := ricapie2.NewE2Session(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID,
-		0, config.SMName, config.SMVersion, kpiMonMetricMap, appCfg)
-
+	topoClient, err := rnib.NewClient()
 	if err != nil {
 		log.Warn(err)
 	}
-	manager := &Manager{
-		Config:    config,
-		appConfig: appCfg,
-		Chans: Channels{
-			IndCh: indCh,
-		},
-		AdminSession: admin.NewE2AdminSession(config.E2tEndpoint),
-		E2Session:    e2Session,
+	e2Client := ricapie2.NewE2Client(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, config.SMName, config.SMVersion, metricStore, appCfg)
 
-		Monitor: monitoring.NewMonitor(indCh, appCfg),
-		Maps: Maps{
-			KpiMonMetricMap: kpiMonMetricMap,
-		},
+	manager := &Manager{
+		config:       config,
+		indChan:      indCh,
+		adminSession: admin.NewE2AdminSession(config.E2tEndpoint),
+		e2Client:     e2Client,
+		monitor:      monitoring.NewMonitor(indCh, appCfg),
+		metricStore:  metricStore,
+		topoClient:   topoClient,
 	}
 	return manager
 }
@@ -67,22 +60,13 @@ func NewManager(config Config) *Manager {
 // Manager is an abstract struct for manager
 type Manager struct {
 	appConfig    appConfig.Config
-	Config       Config
-	E2Session    ricapie2.E2Session
-	AdminSession admin.E2AdminSession
-	Chans        Channels
-	Monitor      *monitoring.Monitor
-	Maps         Maps
-}
-
-// Channels is a set of channels
-type Channels struct {
-	IndCh chan indication.Indication
-}
-
-// Maps is a set of Map
-type Maps struct {
-	KpiMonMetricMap map[int]string
+	config       Config
+	e2Client     ricapie2.E2Client
+	adminSession admin.E2AdminSession
+	topoClient   *rnib.Client
+	monitor      *monitoring.Monitor
+	metricStore  map[int]string
+	indChan      chan indication.Indication
 }
 
 // Run runs KPIMON manager
@@ -104,22 +88,22 @@ func (m *Manager) start() error {
 		return err
 	}
 
-	go m.E2Session.Run(m.Chans.IndCh, m.AdminSession)
-	go m.Monitor.Run(m.Maps.KpiMonMetricMap)
+	go m.e2Client.Run(m.indChan, m.adminSession)
+	go m.monitor.Run(m.metricStore)
 
 	return nil
 }
 
 func (m *Manager) startNorthboundServer() error {
 	s := northbound.NewServer(northbound.NewServerCfg(
-		m.Config.CAPath,
-		m.Config.KeyPath,
-		m.Config.CertPath,
-		int16(m.Config.GRPCPort),
+		m.config.CAPath,
+		m.config.KeyPath,
+		m.config.CertPath,
+		int16(m.config.GRPCPort),
 		true,
 		northbound.SecurityConfig{}))
 
-	s.AddService(nbi.NewService(m.Monitor))
+	s.AddService(nbi.NewService(m.monitor))
 
 	doneCh := make(chan error)
 	go func() {

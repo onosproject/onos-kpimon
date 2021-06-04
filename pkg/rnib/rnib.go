@@ -13,19 +13,33 @@ import (
 	toposdk "github.com/onosproject/onos-ric-sdk-go/pkg/topo"
 )
 
-// Client R-NIB client interface
-type Client interface {
+// TopoClient R-NIB client interface
+type TopoClient interface {
 	WatchE2Nodes(ctx context.Context, ch chan topoapi.Event) error
 	GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error)
 }
 
-// TopoClient topo SDK client
-type TopoClient struct {
+// NewClient creates a new topo SDK client
+func NewClient() (*Client, error) {
+	sdkClient, err := toposdk.NewClient()
+	if err != nil {
+		return nil, err
+	}
+	cl := &Client{
+		client: sdkClient,
+	}
+
+	return cl, nil
+
+}
+
+// Client topo SDK client
+type Client struct {
 	client toposdk.Client
 }
 
 // GetCells get list of cells for each E2 node
-func (c *TopoClient) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error) {
+func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error) {
 	objects, err := c.client.List(ctx, options.WithListFilters(getContainsRelationFilter()))
 	if err != nil {
 		return nil, err
@@ -85,7 +99,7 @@ func getControlRelationFilter() *topoapi.Filters {
 }
 
 // WatchE2Nodes watch e2 node changes
-func (c *TopoClient) WatchE2Nodes(ctx context.Context, ch chan topoapi.Event) error {
+func (c *Client) WatchE2Nodes(ctx context.Context, ch chan topoapi.Event) error {
 	err := c.client.Watch(ctx, ch, options.WithWatchFilters(getControlRelationFilter()))
 	if err != nil {
 		return err
@@ -93,18 +107,4 @@ func (c *TopoClient) WatchE2Nodes(ctx context.Context, ch chan topoapi.Event) er
 	return nil
 }
 
-// NewClient creates a new topo SDK client
-func NewClient() (*TopoClient, error) {
-	sdkClient, err := toposdk.NewClient()
-	if err != nil {
-		return nil, err
-	}
-	cl := &TopoClient{
-		client: sdkClient,
-	}
-
-	return cl, nil
-
-}
-
-var _ Client = &TopoClient{}
+var _ TopoClient = &Client{}
