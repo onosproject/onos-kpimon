@@ -26,19 +26,24 @@ import (
 // KpmServiceModelOIDV2 is the OID for KPM V2.0
 const KpmServiceModelOIDV2 = "1.3.6.1.4.1.53148.1.2.2.2"
 
-func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string, kpimonMetricMap map[int]string) *V2E2Session {
+func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string,
+	smVersion string, kpimonMetricMap map[int]string, kpiMonMetricMapMutex *sync.RWMutex,
+	cellIDMapForSub map[int64]*e2sm_kpm_v2.CellGlobalId, cellIDMapForMutex *sync.RWMutex) *V2E2Session {
 	log.Info("Creating RICAPI E2Session for KPM v2.0")
 	return &V2E2Session{
 		AbstractE2Session: &AbstractE2Session{
-			E2SubEndpoint:   e2subEndpoint,
-			E2TEndpoint:     e2tEndpoint,
-			E2SubInstances:  make(map[string]sdkSub.Context),
-			RicActionID:     types.RicActionID(ricActionID),
-			ReportPeriodMs:  reportPeriodMs,
-			SMName:          smName,
-			SMVersion:       smVersion,
-			KpiMonMetricMap: kpimonMetricMap,
-			SubDelTriggers:  make(map[string]chan bool),
+			E2SubEndpoint:        e2subEndpoint,
+			E2TEndpoint:          e2tEndpoint,
+			E2SubInstances:       make(map[string]sdkSub.Context),
+			RicActionID:          types.RicActionID(ricActionID),
+			ReportPeriodMs:       reportPeriodMs,
+			SMName:               smName,
+			SMVersion:            smVersion,
+			KpiMonMetricMap:      kpimonMetricMap,
+			KpiMonMetricMapMutex: kpiMonMetricMapMutex,
+			SubDelTriggers:       make(map[string]chan bool),
+			CellIDMapForSub:      cellIDMapForSub,
+			CellIDMapMutex:       cellIDMapForMutex,
 		},
 		SubIDCounter: 0,
 	}
@@ -48,7 +53,7 @@ func newV2E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32,
 type V2E2Session struct {
 	*AbstractE2Session
 	SubIDCounter      int64
-	SubIDCouneerMutex sync.RWMutex
+	SubIDCounterMutex sync.RWMutex
 }
 
 // Run starts E2 session
@@ -79,6 +84,7 @@ func (s *V2E2Session) manageConnections(indChan chan indication.Indication, admi
 			ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
 			if err != nil {
 				hasKpiMonMetricMap = false
+				log.Errorf("%v", err)
 				break
 			}
 			for range ranFuncDesc.GetRicKpmNodeList()[0].GetCellMeasurementObjectList() {
@@ -88,9 +94,12 @@ func (s *V2E2Session) manageConnections(indChan chan indication.Indication, admi
 					log.Debugf("Check RAN function description to make KpiMonMetricMap - ranFuncDesc: %v", ranFuncDesc)
 					log.Debugf("Check MeasInfoActionItem to make KpiMonMetricMap - ranFuncDesc: %v", measInfoActionItem)
 					log.Debugf("KpiMonMetricMap generation - name:%v, id:%d", actionName, actionID)
+					s.KpiMonMetricMapMutex.Lock()
 					s.KpiMonMetricMap[int(actionID.Value)] = actionName.Value
+					s.KpiMonMetricMapMutex.Unlock()
 				}
 			}
+
 		}
 
 		log.Debugf("KPIMONMetricMap: %v", s.KpiMonMetricMap)
@@ -129,6 +138,7 @@ func (s *V2E2Session) getRanFuncDesc(nodeID string, adminSession admin.E2AdminSe
 
 	ranFunctionDesc := &e2sm_kpm_v2.E2SmKpmRanfunctionDescription{}
 	ranFunctionFound := false
+	log.Debugf("RanFunctions: %v", ranFunctions)
 	for _, ranFunction := range ranFunctions {
 		if ranFunction.Oid == KpmServiceModelOIDV2 {
 			err = proto.Unmarshal(ranFunction.Description, ranFunctionDesc)
@@ -157,6 +167,7 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 		measInfoList := &e2sm_kpm_v2.MeasurementInfoList{
 			Value: make([]*e2sm_kpm_v2.MeasurementInfoItem, 0),
 		}
+
 		for _, measInfoActionItem := range ranFuncDesc.GetRicReportStyleList()[0].GetMeasInfoActionList().GetValue() {
 			// for test with name
 			actionName := measInfoActionItem.GetMeasName()
@@ -185,10 +196,16 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 		}
 
 		// Generate subscription ID - started from 1 to maximum int64
-		s.SubIDCouneerMutex.Lock()
+		s.SubIDCounterMutex.Lock()
 		s.SubIDCounter++
 		subID := s.SubIDCounter
-		s.SubIDCouneerMutex.Unlock()
+		s.SubIDCounterMutex.Unlock()
+
+		// Record subscription ID and its Cell global ID
+		s.CellIDMapMutex.Lock()
+		s.CellIDMapForSub[subID] = cellMeasObjItem.GetCellGlobalId()
+		log.Debugf("cellIDMapForSub: %v", s.CellIDMapForSub)
+		s.CellIDMapMutex.Unlock()
 
 		log.Debugf("subID for %v: %v", cellObjID, subID)
 

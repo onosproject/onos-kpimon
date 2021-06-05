@@ -6,6 +6,7 @@ package controller
 
 import (
 	"fmt"
+	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"sync"
@@ -14,12 +15,13 @@ import (
 var log = logging.GetLogger("controller", "kpimon")
 
 // NewKpiMonController makes a new kpimon controller
-func NewKpiMonController(indChan chan indication.Indication, smVersion string) KpiMonController {
+func NewKpiMonController(indChan chan indication.Indication, smVersion string, kpiMonMetricMap map[int]string,
+	kpiMonMetricMapMutex *sync.RWMutex, cellIDMapForSub map[int64]*e2sm_kpm_v2.CellGlobalId, cellIDMapMutex *sync.RWMutex) KpiMonController {
 	var kpimonController KpiMonController
 	if smVersion == "v1" {
-		kpimonController = newV1KpiMonController(indChan)
+		kpimonController = newV1KpiMonController(indChan, kpiMonMetricMap, kpiMonMetricMapMutex)
 	} else if smVersion == "v2" {
-		kpimonController = newV2KpiMonController(indChan)
+		kpimonController = newV2KpiMonController(indChan, kpiMonMetricMap, kpiMonMetricMapMutex, cellIDMapForSub, cellIDMapMutex)
 	} else {
 		// It shouldn't be hit
 		log.Fatal("The received service model version %s is not valid - it must be v1 or v2", smVersion)
@@ -29,7 +31,7 @@ func NewKpiMonController(indChan chan indication.Indication, smVersion string) K
 
 // KpiMonController is an interface of the controller for KPIMON
 type KpiMonController interface {
-	Run(map[int]string)
+	Run()
 	GetKpiMonResults() map[KpiMonMetricKey]KpiMonMetricValue
 	GetKpiMonMutex() *sync.RWMutex
 	SetGranularityPeriod(uint64)
@@ -41,11 +43,14 @@ type KpiMonController interface {
 // AbstractKpiMonController is an abstract struct for kpimon controller
 type AbstractKpiMonController struct {
 	KpiMonController
-	IndChan         chan indication.Indication
-	KpiMonResults   map[KpiMonMetricKey]KpiMonMetricValue
-	KpiMonMutex     sync.RWMutex
-	KpiMonMetricMap map[int]string
-	GranulPeriod    uint64
+	IndChan              chan indication.Indication
+	KpiMonResults        map[KpiMonMetricKey]KpiMonMetricValue
+	KpiMonMutex          sync.RWMutex
+	KpiMonMetricMap      map[int]string
+	KpiMonMetricMapMutex *sync.RWMutex
+	CellIDMapForSub      map[int64]*e2sm_kpm_v2.CellGlobalId
+	CellIDMapMutex       *sync.RWMutex
+	GranulPeriod         uint64
 }
 
 // CellIdentity is the ID for each cell

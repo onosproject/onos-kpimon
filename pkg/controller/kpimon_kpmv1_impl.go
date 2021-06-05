@@ -10,14 +10,17 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
+	"sync"
 	"time"
 )
 
-func newV1KpiMonController(indChan chan indication.Indication) *V1KpiMonController {
+func newV1KpiMonController(indChan chan indication.Indication, kpiMonMetricMap map[int]string, kpiMonMetricMapMutex *sync.RWMutex) KpiMonController {
 	return &V1KpiMonController{
 		AbstractKpiMonController: &AbstractKpiMonController{
-			IndChan:       indChan,
-			KpiMonResults: make(map[KpiMonMetricKey]KpiMonMetricValue),
+			IndChan:              indChan,
+			KpiMonResults:        make(map[KpiMonMetricKey]KpiMonMetricValue),
+			KpiMonMetricMap:      kpiMonMetricMap,
+			KpiMonMetricMapMutex: kpiMonMetricMapMutex,
 		},
 	}
 }
@@ -28,8 +31,7 @@ type V1KpiMonController struct {
 }
 
 // Run runs the kpimon controller for KPM v1.0
-func (v1 *V1KpiMonController) Run(kpimonMetricMap map[int]string) {
-	v1.KpiMonMetricMap = kpimonMetricMap
+func (v1 *V1KpiMonController) Run() {
 	v1.listenIndChan()
 }
 

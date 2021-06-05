@@ -13,14 +13,20 @@ import (
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
 	"strconv"
+	"sync"
 	"time"
 )
 
-func newV2KpiMonController(indChan chan indication.Indication) *V2KpiMonController {
+func newV2KpiMonController(indChan chan indication.Indication, kpiMonMetricMap map[int]string,
+	kpiMonMetricMapMutex *sync.RWMutex, cellIDMapForSub map[int64]*e2sm_kpm_v2.CellGlobalId, cellIDMapMutex *sync.RWMutex) KpiMonController {
 	return &V2KpiMonController{
 		AbstractKpiMonController: &AbstractKpiMonController{
-			IndChan:       indChan,
-			KpiMonResults: make(map[KpiMonMetricKey]KpiMonMetricValue),
+			IndChan:              indChan,
+			KpiMonResults:        make(map[KpiMonMetricKey]KpiMonMetricValue),
+			KpiMonMetricMap:      kpiMonMetricMap,
+			KpiMonMetricMapMutex: kpiMonMetricMapMutex,
+			CellIDMapForSub:      cellIDMapForSub,
+			CellIDMapMutex:       cellIDMapMutex,
 		},
 	}
 }
@@ -31,8 +37,7 @@ type V2KpiMonController struct {
 }
 
 // Run runs the kpimon controller for KPM v2.0
-func (v2 *V2KpiMonController) Run(kpimonMetricMap map[int]string) {
-	v2.KpiMonMetricMap = kpimonMetricMap
+func (v2 *V2KpiMonController) Run() {
 	v2.listenIndChan()
 }
 
@@ -43,8 +48,6 @@ func (v2 *V2KpiMonController) listenIndChan() {
 }
 
 func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
-	var plmnID string
-	var eci string
 
 	log.Debugf("Raw indication message: %v", indMsg)
 	indHeader := e2sm_kpm_v2.E2SmKpmIndicationHeader{}
@@ -57,7 +60,6 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	log.Debugf("ind Header: %v", indHeader.GetIndicationHeaderFormat1())
 	log.Debugf("E2SMKPM Ind Header: %v", indHeader.GetE2SmKpmIndicationHeader())
 
-	plmnID, eci, _ = v2.getCellIdentitiesFromHeader(indHeader.GetIndicationHeaderFormat1())
 	startTime := v2.getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
 
 	startTimeUnix := time.Unix(int64(startTime), 0)
@@ -74,6 +76,19 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 
 	log.Debugf("ind Msgs: %v", indMessage.GetIndicationMessageFormat1())
 	log.Debugf("E2SMKPM ind Msgs: %v", indMessage.GetE2SmKpmIndicationMessage())
+
+	subID := indMessage.GetIndicationMessageFormat1().GetSubscriptId().GetValue()
+	v2.CellIDMapMutex.RLock()
+	plmnID, err := v2.getPlmnID(v2.CellIDMapForSub[subID])
+	if err != nil {
+		log.Errorf("%v", err)
+	}
+	eci, err := v2.getEci(v2.CellIDMapForSub[subID])
+	if err != nil {
+		log.Errorf("%v", err)
+	}
+	v2.CellIDMapMutex.RUnlock()
+	log.Debugf("PLMNID (%v) and ECI (%v) for subscription ID (%v)", plmnID, eci, subID)
 
 	v2.KpiMonMutex.Lock()
 	var cid string
@@ -99,9 +114,11 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 			tmpTimestamp := uint64(startTimeUnixNano) + v2.GranulPeriod*uint64(1000000)*uint64(i)
 			log.Debugf("Timestamp for %d-th element: %v", i, tmpTimestamp)
 			if indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue() == "" {
+				v2.KpiMonMetricMapMutex.RLock()
 				log.Debugf("Indication message does not have MeasName - use MeasID")
 				log.Debugf("Value in Indication message for type %v (MeasID-%d): %v", v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value)], int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value), metricValue)
 				v2.updateKpiMonResults(cid, plmnID, eci, v2.KpiMonMetricMap[int(indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasId().Value)], metricValue, tmpTimestamp)
+				v2.KpiMonMetricMapMutex.RUnlock()
 			} else {
 				log.Debugf("Value in Indication message for type %v: %v", indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue(), metricValue)
 				v2.updateKpiMonResults(cid, plmnID, eci, indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()[j].GetMeasType().GetMeasName().GetValue(), metricValue, tmpTimestamp)
@@ -112,41 +129,28 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 	v2.KpiMonMutex.Unlock()
 }
 
-func (v2 *V2KpiMonController) getCellIdentitiesFromHeader(header *e2sm_kpm_v2.E2SmKpmIndicationHeaderFormat1) (string, string, error) {
-	var plmnID, eci string
-
-	if (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetPLmnIdentity() != nil {
-		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetPLmnIdentity().GetValue()))
-	} else if (*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetPlmnId() != nil {
-		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetPlmnId().GetValue()))
-	} else if (*header).GetKpmNodeId().GetEnGNb().GetGlobalGNbId().GetPLmnIdentity() != nil {
-		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetEnGNb().GetGlobalGNbId().GetPLmnIdentity().GetValue()))
-	} else if (*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetPlmnId() != nil {
-		plmnID = fmt.Sprintf("%d", utils.DecodePlmnIDToUint32((*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetPlmnId().GetValue()))
-	} else {
-		log.Errorf("Error when Parsing PLMN ID in indication message header - %v", header.GetKpmNodeId())
-	}
-
-	if (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetENbId().GetMacroENbId() != nil {
-		eci = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetENbId().GetMacroENbId().GetValue())
-	} else if (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetENbId().GetHomeENbId() != nil {
-		eci = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetENb().GetGlobalENbId().GetENbId().GetHomeENbId().GetValue())
-	} else if (*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetGnbId().GetGnbId() != nil {
-		eci = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetGNb().GetGlobalGNbId().GetGnbId().GetGnbId().GetValue())
-	} else if (*header).GetKpmNodeId().GetEnGNb().GetGlobalGNbId().GetGNbId().GetGNbId() != nil {
-		eci = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetEnGNb().GetGlobalGNbId().GetGNbId().GetGNbId().GetValue())
-	} else if (*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetLongMacroENbId() != nil {
-		eci = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetLongMacroENbId().GetValue())
-	} else if (*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetShortMacroENbId() != nil {
-		eci = fmt.Sprintf("%d", (*header).GetKpmNodeId().GetNgENb().GetGlobalNgENbId().GetShortMacroENbId().GetValue())
-	} else {
-		log.Errorf("Error when Parsing ECI in indication message header - %v", header.GetKpmNodeId())
-	}
-	return plmnID, eci, nil
-}
-
 func (v2 *V2KpiMonController) getTimeStampFromHeader(header *e2sm_kpm_v2.E2SmKpmIndicationHeaderFormat1) uint64 {
 	timeBytes := (*header).GetColletStartTime().Value
 	timeInt32 := binary.BigEndian.Uint32(timeBytes)
 	return uint64(timeInt32)
+}
+
+func (v2 *V2KpiMonController) getPlmnID(cellGlobalID *e2sm_kpm_v2.CellGlobalId) (string, error) {
+	if cellGlobalID.GetNrCgi().GetPLmnIdentity() != nil {
+		return fmt.Sprintf("%d", utils.DecodePlmnIDToUint32(cellGlobalID.GetNrCgi().GetPLmnIdentity().GetValue())), nil
+	} else if cellGlobalID.GetEUtraCgi().GetPLmnIdentity() != nil {
+		return fmt.Sprintf("%d", utils.DecodePlmnIDToUint32(cellGlobalID.GetEUtraCgi().GetPLmnIdentity().GetValue())), nil
+	} else {
+		return "", fmt.Errorf("PLMN ID cannot be decoded - cell global ID: %v", cellGlobalID)
+	}
+}
+
+func (v2 *V2KpiMonController) getEci(cellGlobalID *e2sm_kpm_v2.CellGlobalId) (string, error) {
+	if cellGlobalID.GetNrCgi().GetPLmnIdentity() != nil {
+		return fmt.Sprintf("%d", cellGlobalID.GetNrCgi().GetNRcellIdentity().GetValue().GetValue()), nil
+	} else if cellGlobalID.GetEUtraCgi().GetPLmnIdentity() != nil {
+		return fmt.Sprintf("%d", cellGlobalID.GetEUtraCgi().GetEUtracellIdentity().GetValue().GetValue()), nil
+	} else {
+		return "", fmt.Errorf("ECI cannot be decoded - cell global ID: %v", cellGlobalID)
+	}
 }
