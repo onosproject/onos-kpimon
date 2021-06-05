@@ -8,6 +8,7 @@ import (
 	"context"
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm/pdubuilder"
+	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -46,20 +47,25 @@ var periodRanges = utils.PeriodRanges{
 	{Min: 5121, Max: math.MaxInt64, Value: 19},
 }
 
-func newV1E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string, kpimonMetricMap map[int]string) *V1E2Session {
+func newV1E2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string,
+	smVersion string, kpimonMetricMap map[int]string, kpiMonMetricMapMutex *sync.RWMutex,
+	cellIDMapForSub map[int64]*e2sm_kpm_v2.CellGlobalId, cellIDMapForMutex *sync.RWMutex) *V1E2Session {
 	log.Info("Creating RICAPI E2Session for KPM v1.0")
 	kpimonMetricMap[1] = "numActiveUEs"
 	return &V1E2Session{
 		AbstractE2Session: &AbstractE2Session{
-			E2SubEndpoint:   e2subEndpoint,
-			E2TEndpoint:     e2tEndpoint,
-			E2SubInstances:  make(map[string]sdkSub.Context),
-			RicActionID:     types.RicActionID(ricActionID),
-			ReportPeriodMs:  reportPeriodMs,
-			SMName:          smName,
-			SMVersion:       smVersion,
-			KpiMonMetricMap: kpimonMetricMap,
-			SubDelTriggers:  make(map[string]chan bool),
+			E2SubEndpoint:        e2subEndpoint,
+			E2TEndpoint:          e2tEndpoint,
+			E2SubInstances:       make(map[string]sdkSub.Context),
+			RicActionID:          types.RicActionID(ricActionID),
+			ReportPeriodMs:       reportPeriodMs,
+			SMName:               smName,
+			SMVersion:            smVersion,
+			KpiMonMetricMap:      kpimonMetricMap,
+			KpiMonMetricMapMutex: kpiMonMetricMapMutex,
+			SubDelTriggers:       make(map[string]chan bool),
+			CellIDMapForSub:      cellIDMapForSub,
+			CellIDMapMutex:       cellIDMapForMutex,
 		},
 	}
 }

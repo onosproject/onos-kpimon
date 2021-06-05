@@ -5,6 +5,7 @@
 package manager
 
 import (
+	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-kpimon/pkg/controller"
 	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
@@ -16,6 +17,7 @@ import (
 	configurable "github.com/onosproject/onos-ric-sdk-go/pkg/config/registry"
 	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+	"sync"
 )
 
 var log = logging.GetLogger("manager")
@@ -66,6 +68,7 @@ type AbstractManager struct {
 	Chans    Channels
 	Ctrls    Controllers
 	Maps     Maps
+	Mutex    Mutex
 }
 
 // SBSessions is a set of Southbound sessions
@@ -87,6 +90,13 @@ type Controllers struct {
 // Maps is a set of Map
 type Maps struct {
 	KpiMonMetricMap map[int]string
+	CellIDMapForSub map[int64]*e2sm_kpm_v2.CellGlobalId
+}
+
+// Mutex is a set of Mutex
+type Mutex struct {
+	KpiMonMetricMapMutex *sync.RWMutex
+	CellIDMapMutex       *sync.RWMutex
 }
 
 // Run runs KPIMON manager
@@ -131,7 +141,7 @@ func (m *AbstractManager) start() error {
 	m.Sessions.E2Session.SetAppConfig(m.Config.AppConfig)
 
 	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
-	go m.Ctrls.KpiMonController.Run(m.Maps.KpiMonMetricMap)
+	go m.Ctrls.KpiMonController.Run()
 
 	return nil
 }

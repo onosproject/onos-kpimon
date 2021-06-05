@@ -6,6 +6,7 @@ package ricapie2
 
 import (
 	"context"
+	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 	"github.com/onosproject/onos-e2t/pkg/southbound/e2ap/types"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -21,12 +22,16 @@ import (
 var log = logging.GetLogger("southbound", "ricapie2")
 
 // NewE2Session generates a new E2Session
-func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string, smVersion string, kpiMonMetricMap map[int]string) E2Session {
+func NewE2Session(e2tEndpoint string, e2subEndpoint string, ricActionID int32, reportPeriodMs uint64, smName string,
+	smVersion string, kpiMonMetricMap map[int]string, kpiMonMetricMapMutex *sync.RWMutex,
+	cellIDMapForSub map[int64]*e2sm_kpm_v2.CellGlobalId, cellIDMapForMutex *sync.RWMutex) E2Session {
 	var e2Session E2Session
 	if smVersion == "v1" {
-		e2Session = newV1E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion, kpiMonMetricMap)
+		e2Session = newV1E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion,
+			kpiMonMetricMap, kpiMonMetricMapMutex, cellIDMapForSub, cellIDMapForMutex)
 	} else if smVersion == "v2" {
-		e2Session = newV2E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion, kpiMonMetricMap)
+		e2Session = newV2E2Session(e2tEndpoint, e2subEndpoint, ricActionID, reportPeriodMs, smName, smVersion,
+			kpiMonMetricMap, kpiMonMetricMapMutex, cellIDMapForSub, cellIDMapForMutex)
 	} else {
 		// It shouldn't be hit
 		log.Fatal("The received service model version %s is not valid - it must be v1 or v2", smVersion)
@@ -51,19 +56,22 @@ type E2Session interface {
 // AbstractE2Session is an abstract struct of E2 session
 type AbstractE2Session struct {
 	E2Session
-	E2SubEndpoint   string
-	E2SubInstances  map[string]sdkSub.Context
-	SubDelTriggers  map[string]chan bool
-	E2TEndpoint     string
-	RicActionID     types.RicActionID
-	ReportPeriodMs  uint64
-	GranularityMs   uint64
-	AppConfig       *app.Config
-	EventMutex      sync.RWMutex
-	ConfigEventCh   chan event.Event
-	SMName          string
-	SMVersion       string
-	KpiMonMetricMap map[int]string
+	E2SubEndpoint        string
+	E2SubInstances       map[string]sdkSub.Context
+	SubDelTriggers       map[string]chan bool
+	E2TEndpoint          string
+	RicActionID          types.RicActionID
+	ReportPeriodMs       uint64
+	GranularityMs        uint64
+	AppConfig            *app.Config
+	EventMutex           sync.RWMutex
+	ConfigEventCh        chan event.Event
+	SMName               string
+	SMVersion            string
+	KpiMonMetricMap      map[int]string
+	KpiMonMetricMapMutex *sync.RWMutex
+	CellIDMapForSub      map[int64]*e2sm_kpm_v2.CellGlobalId
+	CellIDMapMutex       *sync.RWMutex
 }
 
 // SetReportPeriodMs changes the ReportPeriodMS
