@@ -201,6 +201,7 @@ func (s *V2E2Session) createActionDefinition(ranFuncDesc *e2sm_kpm_v2.E2SmKpmRan
 
 		s.CellIDMapMutex.Lock()
 		s.CellIDMapForSub[subID] = cellMeasObjItem.GetCellGlobalId()
+		log.Debugf("cellIDMapForSub: %v", s.CellIDMapForSub)
 		s.CellIDMapMutex.Unlock()
 
 		log.Debugf("subID for %v: %v", cellObjID, subID)

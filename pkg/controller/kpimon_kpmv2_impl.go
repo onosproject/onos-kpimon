@@ -88,6 +88,7 @@ func (v2 *V2KpiMonController) parseIndMsg(indMsg indication.Indication) {
 		log.Errorf("%v", err)
 	}
 	v2.CellIDMapMutex.RUnlock()
+	log.Debugf("PLMNID (%v) and ECI (%v) for subscription ID (%v)", plmnID, eci, subID)
 
 	v2.KpiMonMutex.Lock()
 	var cid string
