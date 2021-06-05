@@ -84,6 +84,7 @@ func (s *V2E2Session) manageConnections(indChan chan indication.Indication, admi
 			ranFuncDesc, err := s.getRanFuncDesc(id, adminSession)
 			if err != nil {
 				hasKpiMonMetricMap = false
+				log.Errorf("%v", err)
 				break
 			}
 			for range ranFuncDesc.GetRicKpmNodeList()[0].GetCellMeasurementObjectList() {
@@ -137,6 +138,7 @@ func (s *V2E2Session) getRanFuncDesc(nodeID string, adminSession admin.E2AdminSe
 
 	ranFunctionDesc := &e2sm_kpm_v2.E2SmKpmRanfunctionDescription{}
 	ranFunctionFound := false
+	log.Debugf("RanFunctions: %v", ranFunctions)
 	for _, ranFunction := range ranFunctions {
 		if ranFunction.Oid == KpmServiceModelOIDV2 {
 			err = proto.Unmarshal(ranFunction.Description, ranFunctionDesc)
