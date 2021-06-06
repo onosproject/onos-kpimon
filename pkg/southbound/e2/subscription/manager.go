@@ -8,6 +8,20 @@ import (
 	"context"
 	"strings"
 
+	"github.com/google/uuid"
+
+	"github.com/onosproject/onos-kpimon/pkg/utils"
+
+	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
+
+	"github.com/onosproject/onos-kpimon/pkg/monitoring"
+
+	"github.com/onosproject/onos-kpimon/pkg/broker"
+
+	"github.com/onosproject/onos-ric-sdk-go/pkg/app"
+
+	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
+
 	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
@@ -30,10 +44,14 @@ type SubManager interface {
 	Stop() error
 }
 
+// Manager subscription manager
 type Manager struct {
 	e2client     e2client.Client
 	rnibClient   rnib.Client
 	serviceModel ServiceModelOptions
+	appConfig    *appConfig.AppConfig
+	streams      broker.Broker
+	monitor      *monitoring.Monitor
 }
 
 // NewManager creates a new subscription manager
@@ -45,7 +63,7 @@ func NewManager(opts ...Option) (Manager, error) {
 	}
 
 	e2Client, err := e2client.NewClient(e2client.Config{
-		AppID: "onos-kpimon",
+		AppID: app.ID(options.App.AppID),
 		E2TService: e2client.ServiceConfig{
 			Host: options.E2TService.Host,
 			Port: options.E2TService.Port,
@@ -71,6 +89,9 @@ func NewManager(opts ...Option) (Manager, error) {
 			Name:    options.ServiceModel.Name,
 			Version: options.ServiceModel.Version,
 		},
+		appConfig: options.App.AppConfig,
+		streams:   options.App.Broker,
+		monitor:   options.App.Monitor,
 	}, nil
 
 }
@@ -78,12 +99,63 @@ func NewManager(opts ...Option) (Manager, error) {
 // Start starts subscription manager
 func (m *Manager) Start() error {
 	go func() {
-		err := m.watchE2Connections()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		err := m.watchE2Connections(ctx)
+		if err != nil {
+			return
+		}
+	}()
+
+	go func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		err := m.watchConfigChanges(ctx)
 		if err != nil {
 			return
 		}
 	}()
 	return nil
+}
+
+func (m *Manager) watchConfigChanges(ctx context.Context) error {
+	ch := make(chan event.Event)
+	err := m.appConfig.Watch(ctx, ch)
+	if err != nil {
+		return err
+	}
+
+	// Deletes all of subscriptions
+	for configEvent := range ch {
+		if configEvent.Key == utils.ReportPeriodConfigPath {
+			subIDs := m.streams.SubIDs()
+			for _, subID := range subIDs {
+				_, err := m.streams.CloseStream(subID)
+				if err != nil {
+					log.Warn(err)
+					return err
+				}
+			}
+		}
+
+	}
+	// Gets all of connected E2 nodes and creates new subscriptions based on new report interval
+	e2NodeIDs, err := m.rnibClient.E2NodeIDs(ctx)
+	if err != nil {
+		log.Warn(err)
+		return err
+	}
+
+	for _, e2NodeID := range e2NodeIDs {
+		err := m.createSubscription(ctx, e2NodeID)
+		if err != nil {
+			log.Warn(err)
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 func (m *Manager) getMeasurements(serviceModelsInfo map[string]*topoapi.ServiceModelInfo) ([]*topoapi.KPMMeasurement, error) {
@@ -106,9 +178,18 @@ func (m *Manager) getMeasurements(serviceModelsInfo map[string]*topoapi.ServiceM
 
 }
 
-func (m *Manager) processIndication(ch chan indication.Indication) {
+func (m *Manager) sendOnStream(streamID broker.StreamID, ch chan indication.Indication) {
+	streamWriter, err := m.streams.GetStream(streamID)
+	if err != nil {
+		return
+	}
+
 	for msg := range ch {
-		log.Info("Message:", msg)
+		err := streamWriter.Send(msg)
+		if err != nil {
+			log.Warn(err)
+			return
+		}
 	}
 }
 
@@ -131,19 +212,31 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 		return err
 	}
 
-	eventTriggerData, err := subutils.CreateEventTriggerData(100)
+	reportPeriod, err := m.appConfig.GetReportPeriod()
+	if err != nil {
+		log.Warn(err)
+		return err
+	}
+	eventTriggerData, err := subutils.CreateEventTriggerData(uint32(reportPeriod))
 	if err != nil {
 		log.Warn(err)
 		return err
 	}
 
-	actions, err := subutils.CreateSubscriptionActions(measurements, cells)
+	granularityPeriod, err := m.appConfig.GetGranularityPeriod()
 	if err != nil {
 		log.Warn(err)
 		return err
 	}
 
-	sub := subscription.SubscriptionDetails{
+	subID := uuid.New().ID()
+	actions, err := subutils.CreateSubscriptionActions(measurements, cells, uint32(granularityPeriod), int64(subID))
+	if err != nil {
+		log.Warn(err)
+		return err
+	}
+
+	subRequest := subscription.SubscriptionDetails{
 		E2NodeID: subscription.E2NodeID(nodeID),
 		ServiceModel: subscription.ServiceModel{
 			Name:    subscription.ServiceModelName(m.serviceModel.Name),
@@ -159,32 +252,42 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 	}
 
 	ch := make(chan indication.Indication)
-	_, err = m.e2client.Subscribe(ctx, sub, ch)
+	sub, err := m.e2client.Subscribe(ctx, subRequest, ch)
 	if err != nil {
 		log.Warn(err)
 		return err
 	}
 
-	go m.processIndication(ch)
+	stream, err := m.streams.OpenStream(sub)
+	if err != nil {
+		return err
+	}
+
+	go m.sendOnStream(stream.StreamID(), ch)
+	go func() {
+		err = m.monitor.Start(ctx, sub, measurements)
+		if err != nil {
+			log.Warn(err)
+		}
+
+	}()
 
 	return nil
 
 }
 
-func (m *Manager) watchE2Connections() error {
-	ctx := context.Background()
+func (m *Manager) watchE2Connections(ctx context.Context) error {
 	ch := make(chan topoapi.Event)
 	err := m.rnibClient.WatchE2Connections(ctx, ch)
 	if err != nil {
 		log.Warn(err)
 		return err
 	}
-
-	for event := range ch {
-		if event.Type == topoapi.EventType_ADDED || event.Type == topoapi.EventType_NONE {
-			relation := event.Object.Obj.(*topoapi.Object_Relation)
+	// creates a new subscription whenever there is a new E2 node connected and supports KPM service model
+	for topoEvent := range ch {
+		if topoEvent.Type == topoapi.EventType_ADDED || topoEvent.Type == topoapi.EventType_NONE {
+			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
 			e2NodeID := relation.Relation.TgtEntityID
-			log.Info("Node ID:", e2NodeID)
 			err := m.createSubscription(ctx, e2NodeID)
 			if err != nil {
 				log.Warn(err)
@@ -196,6 +299,7 @@ func (m *Manager) watchE2Connections() error {
 	return nil
 }
 
+// Stop stops the subscription manager
 func (m *Manager) Stop() error {
 	panic("implement me")
 }

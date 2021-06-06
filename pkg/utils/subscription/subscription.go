@@ -13,9 +13,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func CreateSubscriptionActions(measurements []*topoapi.KPMMeasurement, cells []*topoapi.E2Cell) ([]subscription.Action, error) {
+// CreateSubscriptionActions creates subscription actions
+func CreateSubscriptionActions(measurements []*topoapi.KPMMeasurement, cells []*topoapi.E2Cell, granularity uint32, subID int64) ([]subscription.Action, error) {
 	actions := make([]subscription.Action, 0)
-	granularity := 10
 
 	for index, cell := range cells {
 		measInfoList := &e2smkpmv2.MeasurementInfoList{
@@ -33,17 +33,18 @@ func CreateSubscriptionActions(measurements []*topoapi.KPMMeasurement, cells []*
 			}
 			measInfoList.Value = append(measInfoList.Value, meanInfoItem)
 
-			actionDefinitionCell, err := pdubuilder.CreateActionDefinitionFormat1(cell.GetCID(), measInfoList, uint32(granularity), 10)
+			actionDefinition, err := pdubuilder.CreateActionDefinitionFormat1(cell.GetCID(), measInfoList, granularity, subID)
 			if err != nil {
 				return nil, err
 			}
 
-			e2smKpmADCell, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(1, actionDefinitionCell)
+			// TODO ric style types should be retrieved from R-NIB
+			e2smKpmActionDefinition, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(3, actionDefinition)
 			if err != nil {
 				return nil, err
 			}
 
-			e2smKpmADCellProto, err := proto.Marshal(e2smKpmADCell)
+			e2smKpmActionDefinitionProto, err := proto.Marshal(e2smKpmActionDefinition)
 			if err != nil {
 				return nil, err
 			}
@@ -57,7 +58,7 @@ func CreateSubscriptionActions(measurements []*topoapi.KPMMeasurement, cells []*
 				},
 				Payload: subscription.Payload{
 					Encoding: subscription.Encoding_ENCODING_PROTO,
-					Data:     e2smKpmADCellProto,
+					Data:     e2smKpmActionDefinitionProto,
 				},
 			}
 

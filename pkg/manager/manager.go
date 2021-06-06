@@ -5,16 +5,14 @@
 package manager
 
 import (
+	"github.com/onosproject/onos-kpimon/pkg/broker"
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
-	"github.com/onosproject/onos-kpimon/pkg/rnib"
-	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
-	"github.com/onosproject/onos-kpimon/pkg/southbound/e2"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/e2/subscription"
+	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 )
 
 var log = logging.GetLogger("manager")
@@ -34,47 +32,42 @@ type Config struct {
 
 // NewManager generates the new KPIMON xAPP manager
 func NewManager(config Config) *Manager {
-	indCh := make(chan indication.Indication)
-	metricStore := make(map[int]string)
 	appCfg, err := appConfig.NewConfig()
 	if err != nil {
 		log.Warn(err)
 	}
-
-	e2Client := e2.NewE2Client(config.E2tEndpoint, config.E2SubEndpoint, config.RicActionID, config.SMName, config.SMVersion, metricStore, appCfg)
+	subscriptionBroker := broker.NewBroker()
+	measStore := measurements.NewStore()
+	monitor := monitoring.NewMonitor(subscriptionBroker, appCfg, measStore)
 
 	subManager, err := subscription.NewManager(
 		subscription.WithE2SubAddress("onos-e2sub", 5150),
 		subscription.WithE2TAddress("onos-e2t", 5150),
-		subscription.WithServiceModel("oran-e2sm-kpm", "v2"))
+		subscription.WithServiceModel("oran-e2sm-kpm", "v2"),
+		subscription.WithAppConfig(appCfg),
+		subscription.WithAppID("onos-kpimon"),
+		subscription.WithBroker(subscriptionBroker),
+		subscription.WithMonitor(monitor))
 
 	if err != nil {
 		log.Warn(err)
 	}
 
 	manager := &Manager{
-		config:       config,
-		indChan:      indCh,
-		adminSession: admin.NewE2AdminSession(config.E2tEndpoint),
-		e2Client:     e2Client,
-		monitor:      monitoring.NewMonitor(indCh, appCfg),
-		metricStore:  metricStore,
-		subManager:   subManager,
+		appConfig:        appCfg,
+		config:           config,
+		subManager:       subManager,
+		measurementStore: measStore,
 	}
 	return manager
 }
 
 // Manager is an abstract struct for manager
 type Manager struct {
-	appConfig    appConfig.Config
-	config       Config
-	e2Client     e2.E2Client
-	adminSession admin.E2AdminSession
-	topoClient   *rnib.Client
-	monitor      *monitoring.Monitor
-	metricStore  map[int]string
-	indChan      chan indication.Indication
-	subManager   subscription.Manager
+	appConfig        appConfig.Config
+	config           Config
+	measurementStore measurements.Store
+	subManager       subscription.Manager
 }
 
 // Run runs KPIMON manager
@@ -91,18 +84,17 @@ func (m *Manager) Close() {
 }
 
 func (m *Manager) start() error {
-	/*err := m.startNorthboundServer()
+	err := m.startNorthboundServer()
 	if err != nil {
-		return err
-	}*/
-
-	err := m.subManager.Start()
-	if err != nil {
+		log.Warn(err)
 		return err
 	}
 
-	//go m.e2Client.Run(m.indChan, m.adminSession)
-	//go m.monitor.Run(m.metricStore)
+	err = m.subManager.Start()
+	if err != nil {
+		log.Warn(err)
+		return err
+	}
 
 	return nil
 }
@@ -116,7 +108,7 @@ func (m *Manager) startNorthboundServer() error {
 		true,
 		northbound.SecurityConfig{}))
 
-	s.AddService(nbi.NewService(m.monitor))
+	s.AddService(nbi.NewService(m.measurementStore))
 
 	doneCh := make(chan error)
 	go func() {

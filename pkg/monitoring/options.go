@@ -2,4 +2,4 @@
 //
 // SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
-package metrics
+package monitoring

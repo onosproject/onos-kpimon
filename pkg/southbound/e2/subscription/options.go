@@ -1,7 +1,14 @@
-// SPDX-FileCopyrightText: ${year}-present Open Networking Foundation <info@opennetworking.org>
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
+//
+// SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
 
 package subscription
+
+import (
+	"github.com/onosproject/onos-kpimon/pkg/broker"
+	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
+	"github.com/onosproject/onos-kpimon/pkg/monitoring"
+)
 
 // Options E2 client options
 type Options struct {
@@ -10,6 +17,19 @@ type Options struct {
 	E2SubService E2SubServiceOptions
 
 	ServiceModel ServiceModelOptions
+
+	App AppOptions
+}
+
+// AppOptions application options
+type AppOptions struct {
+	AppID string
+
+	AppConfig *appConfig.AppConfig
+
+	Broker broker.Broker
+
+	Monitor *monitoring.Monitor
 }
 
 // E2TServiceOptions are the options for a E2T service
@@ -113,5 +133,33 @@ func WithServiceModel(name ServiceModelName, version ServiceModelVersion) Option
 			Name:    name,
 			Version: version,
 		}
+	})
+}
+
+// WithAppID sets application ID
+func WithAppID(appID string) Option {
+	return newOption(func(options *Options) {
+		options.App.AppID = appID
+	})
+}
+
+// WithAppConfig sets the app config interface
+func WithAppConfig(appConfig *appConfig.AppConfig) Option {
+	return newOption(func(options *Options) {
+		options.App.AppConfig = appConfig
+	})
+}
+
+// WithBroker sets subscription broker
+func WithBroker(broker broker.Broker) Option {
+	return newOption(func(options *Options) {
+		options.App.Broker = broker
+	})
+}
+
+// WithMonitor sets monitoring interface
+func WithMonitor(monitor *monitoring.Monitor) Option {
+	return newOption(func(options *Options) {
+		options.App.Monitor = monitor
 	})
 }

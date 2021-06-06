@@ -16,6 +16,7 @@ type TopoClient interface {
 	WatchE2Connections(ctx context.Context, ch chan topoapi.Event) error
 	GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error)
 	GetE2NodeAspects(ctx context.Context, nodeID topoapi.ID) (*topoapi.E2Node, error)
+	E2NodeIDs(ctx context.Context) ([]topoapi.ID, error)
 }
 
 // NewClient creates a new topo SDK client
@@ -35,6 +36,23 @@ func NewClient() (Client, error) {
 // Client topo SDK client
 type Client struct {
 	client toposdk.Client
+}
+
+// E2NodeIDs lists all of connected E2 nodes
+func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
+	objects, err := c.client.List(ctx, toposdk.WithListFilters(getControlRelationFilter()))
+	if err != nil {
+		return nil, err
+	}
+
+	e2NodeIDs := make([]topoapi.ID, len(objects))
+	for _, object := range objects {
+		relation := object.Obj.(*topoapi.Object_Relation)
+		e2NodeID := relation.Relation.TgtEntityID
+		e2NodeIDs = append(e2NodeIDs, e2NodeID)
+	}
+
+	return e2NodeIDs, nil
 }
 
 // GetE2NodeAspects gets E2 node aspects
