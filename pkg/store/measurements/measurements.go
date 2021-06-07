@@ -28,6 +28,9 @@ type Store interface {
 	// Get gets a metric store entry based on a given key
 	Get(ctx context.Context, key Key) (*Entry, error)
 
+	// Delete deletes an entry based on a given key
+	Delete(ctx context.Context, key Key) error
+
 	// Entries list all of the metric store entries
 	Entries(ctx context.Context, ch chan<- Entry) error
 
@@ -52,6 +55,15 @@ func NewStore() Store {
 
 func (s *store) Entries(ctx context.Context, ch chan<- Entry) error {
 	panic("implement me")
+}
+
+func (s *store) Delete(ctx context.Context, key Key) error {
+	// TODO check the key and make sure it is not empty
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.measurements, key)
+	return nil
+
 }
 
 func (s *store) Put(ctx context.Context, key Key, value interface{}) (*Entry, error) {
