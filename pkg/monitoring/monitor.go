@@ -62,7 +62,6 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indic
 	startTimeUnixNano := toUnixNano(int64(startTime))
 
 	granularity, err := m.appConfig.GetGranularityPeriod()
-
 	if err != nil {
 		log.Warn(err)
 		return err

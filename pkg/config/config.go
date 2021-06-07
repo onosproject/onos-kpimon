@@ -64,7 +64,6 @@ func (c *AppConfig) GetReportPeriodWithPath(path string) (uint64, error) {
 		return 0, err
 	}
 
-	log.Infof("Received period value: %v", val)
 	return val, nil
 }
 
@@ -77,7 +76,6 @@ func (c *AppConfig) GetReportPeriod() (uint64, error) {
 		return 0, err
 	}
 
-	log.Infof("Received period value: %v", val)
 	return val, nil
 }
 
@@ -89,7 +87,6 @@ func (c *AppConfig) GetGranularityPeriod() (uint64, error) {
 		log.Error(err)
 		return 0, err
 	}
-	log.Infof("Received granularity period value: %v", val)
 	return val, nil
 }
 
