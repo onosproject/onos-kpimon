@@ -1,0 +1,146 @@
+// SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
+//
+// SPDX-License-Identifier: LicenseRef-ONF-Member-1.0
+
+package monitoring
+
+import (
+	"context"
+
+	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+
+	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
+
+	measurmentStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
+	e2sub "github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
+
+	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
+	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/onosproject/onos-lib-go/pkg/logging"
+
+	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
+	"github.com/onosproject/onos-kpimon/pkg/broker"
+)
+
+var log = logging.GetLogger("monitoring")
+
+// NewMonitor creates a new indication monitor
+func NewMonitor(streams broker.Broker, appConfig *appConfig.AppConfig, measurementStore measurmentStore.Store) *Monitor {
+	return &Monitor{
+		streams:          streams,
+		appConfig:        appConfig,
+		measurementStore: measurementStore,
+	}
+}
+
+// Monitor indication monitor
+type Monitor struct {
+	streams          broker.Broker
+	measurementStore measurmentStore.Store
+	appConfig        *appConfig.AppConfig
+}
+
+func (m *Monitor) processIndication(ctx context.Context, indication indication.Indication, subID subscription.ID, measurements []*topoapi.KPMMeasurement) error {
+	indHeader := e2smkpmv2.E2SmKpmIndicationHeader{}
+	err := proto.Unmarshal(indication.Payload.Header, &indHeader)
+	if err != nil {
+		return err
+	}
+
+	indMessage := e2smkpmv2.E2SmKpmIndicationMessage{}
+	err = proto.Unmarshal(indication.Payload.Message, &indMessage)
+	if err != nil {
+		return err
+	}
+
+	startTime := getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
+	startTimeUnixNano := toUnixNano(int64(startTime))
+
+	granularity, err := m.appConfig.GetGranularityPeriod()
+
+	if err != nil {
+		log.Warn(err)
+		return err
+	}
+
+	var cid string
+	if indMessage.GetIndicationMessageFormat1().GetCellObjId() == nil {
+		// TODO
+	} else {
+		cid = indMessage.GetIndicationMessageFormat1().GetCellObjId().Value
+	}
+
+	measDataItems := indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()
+	measInfoList := indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()
+
+	measItems := make([]measurmentStore.MeasurementItem, 0)
+	for i, measDataItem := range measDataItems {
+
+		meadDataRecords := measDataItem.GetMeasRecord().GetValue()
+		measRecords := make([]measurmentStore.MeasurementRecord, 0)
+		for j, measDataRecord := range meadDataRecords {
+			var measValue interface{}
+			switch val := measDataRecord.MeasurementRecordItem.(type) {
+			case *e2smkpmv2.MeasurementRecordItem_Integer:
+				measValue = val.Integer
+
+			case *e2smkpmv2.MeasurementRecordItem_Real:
+				measValue = val.Real
+
+			case *e2smkpmv2.MeasurementRecordItem_NoValue:
+				measValue = val.NoValue
+			default:
+				measValue = 0
+			}
+
+			timeStamp := uint64(startTimeUnixNano) + granularity*uint64(1000000)*uint64(i)
+			if measInfoList[j].GetMeasType().GetMeasName().GetValue() != "" {
+				measName := measInfoList[j].GetMeasType().GetMeasName().GetValue()
+				measRecord := measurmentStore.MeasurementRecord{
+					Timestamp:        timeStamp,
+					MeasurementName:  measName,
+					MeasurementValue: measValue,
+				}
+				measRecords = append(measRecords, measRecord)
+			}
+		}
+
+		measItem := measurmentStore.MeasurementItem{
+			MeasurementRecords: measRecords,
+		}
+		measItems = append(measItems, measItem)
+
+	}
+	cellID := measurmentStore.CellIdentity{
+		CellID: cid,
+	}
+
+	measurementKey := measurmentStore.NewKey(cellID)
+	_, err = m.measurementStore.Put(ctx, measurementKey, measItems)
+	if err != nil {
+		log.Warn(err)
+		return err
+	}
+	return nil
+}
+
+// Start start monitoring of indication messages for a given subscription ID
+func (m *Monitor) Start(ctx context.Context, e2sub e2sub.Context, measurements []*topoapi.KPMMeasurement) error {
+	streamReader, err := m.streams.OpenStream(e2sub)
+	if err != nil {
+		return err
+	}
+
+	for {
+		indMsg, err := streamReader.Recv(ctx)
+		if err != nil {
+			return err
+		}
+		err = m.processIndication(ctx, indMsg, e2sub.ID(), measurements)
+		if err != nil {
+			return err
+		}
+	}
+}
