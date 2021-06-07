@@ -39,7 +39,7 @@ import (
 var log = logging.GetLogger("e2", "subscription", "manager")
 
 const (
-	KpmServiceModelOID = "1.3.6.1.4.1.53148.1.2.2.2"
+	kpmServiceModelOID = "1.3.6.1.4.1.53148.1.2.2.2"
 )
 
 // SubManager subscription manager interface
@@ -165,7 +165,7 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 func (m *Manager) getMeasurements(serviceModelsInfo map[string]*topoapi.ServiceModelInfo) ([]*topoapi.KPMMeasurement, error) {
 	for _, sm := range serviceModelsInfo {
 		smName := strings.ToLower(sm.Name)
-		if smName == string(m.serviceModel.Name) && sm.OID == KpmServiceModelOID {
+		if smName == string(m.serviceModel.Name) && sm.OID == kpmServiceModelOID {
 			kpmRanFunction := &topoapi.KPMRanFunction{}
 			for _, ranFunction := range sm.RanFunctions {
 				if ranFunction.TypeUrl == ranFunction.GetTypeUrl() {

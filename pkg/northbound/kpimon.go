@@ -6,7 +6,8 @@ package northbound
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/onosproject/onos-kpimon/pkg/store/event"
 
 	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
 
@@ -52,6 +53,11 @@ func (s Server) GetMetricTypes(ctx context.Context, request *kpimonapi.GetReques
 		attr[key.Metric] = "0"
 	}
 	s.monitor.GetKpiMonMutex().RUnlock()*/
+	ch := make(chan event.Event)
+	err := s.measurementStore.Watch(ctx, ch)
+	if err != nil {
+		return nil, err
+	}
 
 	response := &kpimonapi.GetResponse{
 		Object: &kpimonapi.Object{
@@ -68,23 +74,6 @@ func (s Server) GetMetricTypes(ctx context.Context, request *kpimonapi.GetReques
 func (s Server) GetMetrics(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
 	// ignore ID here since it will return results for all keys
 	attr := make(map[string]string)
-
-	keys, err := s.measurementStore.Keys(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, key := range keys {
-		entry, err := s.measurementStore.Get(ctx, key)
-		if err != nil {
-			return nil, err
-		}
-		items := entry.Value.([]measurements.MeasurementItem)
-		for _, item := range items {
-			fmt.Printf("%v", item)
-		}
-	}
-
 	/*s.monitor.GetKpiMonMutex().Lock()
 	for key, value := range s.monitor.GetKpiMonResults() {
 		attr[fmt.Sprintf("%s:%s:%s:%s:%d", key.CellIdentity.CellID, key.CellIdentity.PlmnID, key.CellIdentity.ECI, key.Metric, key.Timestamp)] = value.Value

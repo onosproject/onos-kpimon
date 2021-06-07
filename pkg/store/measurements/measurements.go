@@ -8,8 +8,18 @@ import (
 	"context"
 	"sync"
 
+	"github.com/onosproject/onos-lib-go/pkg/logging"
+
+	"github.com/google/uuid"
+
+	"github.com/onosproject/onos-kpimon/pkg/store/watcher"
+
+	"github.com/onosproject/onos-kpimon/pkg/store/event"
+
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 )
+
+var log = logging.GetLogger("store", "measurements")
 
 // Store kpm metrics store interface
 type Store interface {
@@ -19,53 +29,44 @@ type Store interface {
 	Get(ctx context.Context, key Key) (*Entry, error)
 
 	// Entries list all of the metric store entries
-	Entries(ctx context.Context) ([]*Entry, error)
+	Entries(ctx context.Context, ch chan<- Entry) error
 
-	// Keys list all of the keys
-	Keys(ctx context.Context) ([]Key, error)
+	// Watch measurement store changes
+	Watch(ctx context.Context, ch chan<- event.Event) error
 }
 
 type store struct {
 	measurements map[Key]*Entry
 	mu           sync.RWMutex
+	watchers     *watcher.Watchers
 }
 
 // NewStore creates new store
 func NewStore() Store {
+	watchers := watcher.NewWatchers()
 	return &store{
 		measurements: make(map[Key]*Entry),
+		watchers:     watchers,
 	}
 }
 
-func (s *store) Entries(ctx context.Context) ([]*Entry, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	entries := make([]*Entry, 0)
-	for _, entry := range s.measurements {
-		entries = append(entries, entry)
-	}
-
-	return entries, nil
-}
-
-// Keys list of measurement keys
-func (s *store) Keys(ctx context.Context) ([]Key, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	keys := make([]Key, 0)
-	for k := range s.measurements {
-		keys = append(keys, k)
-	}
-	return keys, nil
+func (s *store) Entries(ctx context.Context, ch chan<- Entry) error {
+	panic("implement me")
 }
 
 func (s *store) Put(ctx context.Context, key Key, value interface{}) (*Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	entry := &Entry{
+		Key:   key,
 		Value: value,
 	}
 	s.measurements[key] = entry
+	s.watchers.Send(event.Event{
+		Key:   key,
+		Value: entry,
+		Type:  Created,
+	})
 	return entry, nil
 
 }
@@ -79,9 +80,23 @@ func (s *store) Get(ctx context.Context, key Key) (*Entry, error) {
 	return nil, errors.New(errors.NotFound, "the measurement entry does not exist")
 }
 
-// Entry metric store entry
-type Entry struct {
-	Value interface{}
+func (s *store) Watch(ctx context.Context, ch chan<- event.Event) error {
+	id := uuid.New()
+	err := s.watchers.AddWatcher(id, ch)
+	if err != nil {
+		log.Error(err)
+		close(ch)
+		return err
+	}
+	go func() {
+		<-ctx.Done()
+		err = s.watchers.RemoveWatcher(id)
+		if err != nil {
+			log.Error(err)
+		}
+		close(ch)
+	}()
+	return nil
 }
 
 // NewKey creates a new measurements map key
@@ -89,11 +104,6 @@ func NewKey(CellID CellIdentity) Key {
 	return Key{
 		CellIdentity: CellID,
 	}
-}
-
-// Key is the key of monitoring result metric store
-type Key struct {
-	CellIdentity CellIdentity
 }
 
 var _ Store = &store{}

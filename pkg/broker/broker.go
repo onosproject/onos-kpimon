@@ -33,7 +33,7 @@ type Broker interface {
 	// OpenStream opens a subscription Stream
 	// If a stream already exists for the subscription, the existing stream will be returned.
 	// If no stream exists, a new stream will be allocated with a unique StreamID.
-	OpenStream(e2sub e2sub.Context) (StreamReader, error)
+	OpenStream(e2SubCtx e2sub.Context) (StreamReader, error)
 
 	// CloseStream closes a subscription Stream
 	// The associated Stream will be closed gracefully: the reader will continue receiving pending indications
