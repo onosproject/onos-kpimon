@@ -55,6 +55,8 @@ func (m *Monitor) processIndication(ctx context.Context, indication indication.I
 		return err
 	}
 
+	log.Debugf("Received indication header format 1 %v:", indHeader.GetIndicationHeaderFormat1())
+	log.Debugf("Received indication message format 1: %v", indMessage.GetIndicationMessageFormat1())
 	startTime := getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
 	startTimeUnixNano := toUnixNano(int64(startTime))
 
