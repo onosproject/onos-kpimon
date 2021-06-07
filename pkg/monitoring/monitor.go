@@ -42,7 +42,7 @@ type Monitor struct {
 	appConfig        *appConfig.AppConfig
 }
 
-func (m *Monitor) processIndication(ctx context.Context, indication indication.Indication, subID subscription.ID, measurements []*topoapi.KPMMeasurement) error {
+func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indication.Indication, subID subscription.ID, measurements []*topoapi.KPMMeasurement) error {
 	indHeader := e2smkpmv2.E2SmKpmIndicationHeader{}
 	err := proto.Unmarshal(indication.Payload.Header, &indHeader)
 	if err != nil {
@@ -57,6 +57,7 @@ func (m *Monitor) processIndication(ctx context.Context, indication indication.I
 
 	log.Debugf("Received indication header format 1 %v:", indHeader.GetIndicationHeaderFormat1())
 	log.Debugf("Received indication message format 1: %v", indMessage.GetIndicationMessageFormat1())
+
 	startTime := getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
 	startTimeUnixNano := toUnixNano(int64(startTime))
 
@@ -125,6 +126,16 @@ func (m *Monitor) processIndication(ctx context.Context, indication indication.I
 		log.Warn(err)
 		return err
 	}
+	return nil
+}
+
+func (m *Monitor) processIndication(ctx context.Context, indication indication.Indication, subID subscription.ID, measurements []*topoapi.KPMMeasurement) error {
+	err := m.processIndicationFormat1(ctx, indication, subID, measurements)
+	if err != nil {
+		log.Warn(err)
+		return err
+	}
+
 	return nil
 }
 
