@@ -18,8 +18,6 @@ type MeasurementRecord struct {
 
 // CellIdentity is the ID for each cell
 type CellIdentity struct {
-	PlmnID string
-	ECI    string
 	CellID string
 }
 
