@@ -5,6 +5,7 @@
 package subscription
 
 import (
+	"github.com/google/uuid"
 	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	subapi "github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
@@ -14,7 +15,7 @@ import (
 )
 
 // CreateSubscriptionActions creates subscription actions
-func CreateSubscriptionActions(measurements []*topoapi.KPMMeasurement, cells []*topoapi.E2Cell, granularity uint32, subID int64) ([]subscription.Action, error) {
+func CreateSubscriptionActions(measurements []*topoapi.KPMMeasurement, cells []*topoapi.E2Cell, granularity uint32) ([]subscription.Action, error) {
 	actions := make([]subscription.Action, 0)
 
 	for index, cell := range cells {
@@ -33,12 +34,14 @@ func CreateSubscriptionActions(measurements []*topoapi.KPMMeasurement, cells []*
 			}
 			measInfoList.Value = append(measInfoList.Value, meanInfoItem)
 
-			actionDefinition, err := pdubuilder.CreateActionDefinitionFormat1(cell.GetCID(), measInfoList, granularity, subID)
+			subID := uuid.New().ID()
+			actionDefinition, err := pdubuilder.CreateActionDefinitionFormat1(cell.GetCID(), measInfoList, granularity, int64(subID))
 			if err != nil {
 				return nil, err
 			}
 
 			// TODO ric style types should be retrieved from R-NIB
+
 			e2smKpmActionDefinition, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(3, actionDefinition)
 			if err != nil {
 				return nil, err

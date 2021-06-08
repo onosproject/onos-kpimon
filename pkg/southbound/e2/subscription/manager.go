@@ -11,8 +11,6 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 
-	"github.com/google/uuid"
-
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 
 	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
@@ -252,8 +250,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 		return err
 	}
 
-	subID := uuid.New().ID()
-	actions, err := subutils.CreateSubscriptionActions(measurements, cells, uint32(granularityPeriod), int64(subID))
+	actions, err := subutils.CreateSubscriptionActions(measurements, cells, uint32(granularityPeriod))
 	if err != nil {
 		log.Warn(err)
 		return err
