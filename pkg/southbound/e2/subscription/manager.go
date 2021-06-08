@@ -169,11 +169,12 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 	}
 
 	for _, e2NodeID := range e2NodeIDs {
-		err := m.createSubscription(ctx, e2NodeID)
-		if err != nil {
-			log.Warn(err)
-			return err
-		}
+		go func(e2NodeID topoapi.ID) {
+			err := m.newSubscription(ctx, e2NodeID)
+			if err != nil {
+				log.Warn(err)
+			}
+		}(e2NodeID)
 	}
 
 	return nil
