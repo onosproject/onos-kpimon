@@ -5,19 +5,15 @@
 package manager
 
 import (
-	e2sm_kpm_v2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
-	"github.com/onosproject/onos-kpimon/pkg/controller"
+	"github.com/onosproject/onos-kpimon/pkg/broker"
+	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
+	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
-	"github.com/onosproject/onos-kpimon/pkg/southbound/admin"
-	"github.com/onosproject/onos-kpimon/pkg/southbound/ricapie2"
-	"github.com/onosproject/onos-kpimon/pkg/utils"
+	"github.com/onosproject/onos-kpimon/pkg/southbound/e2/subscription"
+	"github.com/onosproject/onos-kpimon/pkg/store/actions"
+	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
-	app "github.com/onosproject/onos-ric-sdk-go/pkg/config/app/default"
-	configurable "github.com/onosproject/onos-ric-sdk-go/pkg/config/registry"
-	configutils "github.com/onosproject/onos-ric-sdk-go/pkg/config/utils"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
-	"sync"
 )
 
 var log = logging.GetLogger("manager")
@@ -30,77 +26,55 @@ type Config struct {
 	E2tEndpoint   string
 	E2SubEndpoint string
 	GRPCPort      int
-	AppConfig     *app.Config
 	RicActionID   int32
 	SMName        string
 	SMVersion     string
 }
 
 // NewManager generates the new KPIMON xAPP manager
-func NewManager(config Config) Manager {
-	var manager Manager
-	if config.SMVersion == "v1" {
-		manager = newV1Manager(config)
-	} else if config.SMVersion == "v2" {
-		manager = newV2Manager(config)
-	} else {
-		log.Fatal("The received service model version %s is not valid - it must be v1 or v2", config.SMVersion)
+func NewManager(config Config) *Manager {
+	appCfg, err := appConfig.NewConfig()
+	if err != nil {
+		log.Warn(err)
+	}
+	subscriptionBroker := broker.NewBroker()
+	measStore := measurements.NewStore()
+	actionsStore := actions.NewStore()
+	monitor := monitoring.NewMonitor(subscriptionBroker, appCfg, measStore, actionsStore)
+
+	subManager, err := subscription.NewManager(
+		subscription.WithE2SubAddress("onos-e2sub", 5150),
+		subscription.WithE2TAddress("onos-e2t", 5150),
+		subscription.WithServiceModel("oran-e2sm-kpm", "v2"),
+		subscription.WithAppConfig(appCfg),
+		subscription.WithAppID("onos-kpimon"),
+		subscription.WithBroker(subscriptionBroker),
+		subscription.WithMonitor(monitor),
+		subscription.WithActions(actionsStore))
+
+	if err != nil {
+		log.Warn(err)
+	}
+
+	manager := &Manager{
+		appConfig:        appCfg,
+		config:           config,
+		subManager:       subManager,
+		measurementStore: measStore,
 	}
 	return manager
 }
 
-// Manager is an interface of KPIMON manager
-type Manager interface {
-	Run()
-	Close()
-	start() error
-	registerConfigurable() error
-	startNorthboundServer() error
-	getReportPeriod() (uint64, error)
-	getGranularityPeriod() (uint64, error)
-}
-
-// AbstractManager is an abstract struct for manager
-type AbstractManager struct {
-	Manager
-	Config   Config
-	Sessions SBSessions
-	Chans    Channels
-	Ctrls    Controllers
-	Maps     Maps
-	Mutex    Mutex
-}
-
-// SBSessions is a set of Southbound sessions
-type SBSessions struct {
-	E2Session    ricapie2.E2Session
-	AdminSession admin.E2AdminSession
-}
-
-// Channels is a set of channels
-type Channels struct {
-	IndCh chan indication.Indication
-}
-
-// Controllers is a set of controllers
-type Controllers struct {
-	KpiMonController controller.KpiMonController
-}
-
-// Maps is a set of Map
-type Maps struct {
-	KpiMonMetricMap map[int]string
-	CellIDMapForSub map[int64]*e2sm_kpm_v2.CellGlobalId
-}
-
-// Mutex is a set of Mutex
-type Mutex struct {
-	KpiMonMetricMapMutex *sync.RWMutex
-	CellIDMapMutex       *sync.RWMutex
+// Manager is an abstract struct for manager
+type Manager struct {
+	appConfig        appConfig.Config
+	config           Config
+	measurementStore measurements.Store
+	subManager       subscription.Manager
 }
 
 // Run runs KPIMON manager
-func (m *AbstractManager) Run() {
+func (m *Manager) Run() {
 	err := m.start()
 	if err != nil {
 		log.Errorf("Error when starting KPIMON: %v", err)
@@ -108,63 +82,36 @@ func (m *AbstractManager) Run() {
 }
 
 // Close closes manager
-func (m *AbstractManager) Close() {
+func (m *Manager) Close() {
 	log.Info("closing Manager")
 }
 
-func (m *AbstractManager) start() error {
+func (m *Manager) start() error {
 	err := m.startNorthboundServer()
 	if err != nil {
+		log.Warn(err)
 		return err
 	}
 
-	err = m.registerConfigurable()
+	err = m.subManager.Start()
 	if err != nil {
-		log.Error("Failed to register the app as a configurable entity", err)
+		log.Warn(err)
 		return err
 	}
-
-	period, err := m.getReportPeriod()
-	if err != nil {
-		log.Errorf("Failed to get report period so period is set to 30ms: %v", err)
-		period = 30
-	}
-	granularity, err := m.getGranularityPeriod()
-	if err != nil {
-		log.Errorf("Failed to get granularity period so period is set to the report period: %v", err)
-		granularity = period
-	}
-
-	m.Sessions.E2Session.SetReportPeriodMs(period)
-	m.Sessions.E2Session.SetGranularityMs(granularity)
-	m.Ctrls.KpiMonController.SetGranularityPeriod(granularity)
-	m.Sessions.E2Session.SetAppConfig(m.Config.AppConfig)
-
-	go m.Sessions.E2Session.Run(m.Chans.IndCh, m.Sessions.AdminSession)
-	go m.Ctrls.KpiMonController.Run()
 
 	return nil
 }
 
-func (m *AbstractManager) registerConfigurable() error {
-	appConfig, err := configurable.RegisterConfigurable(&configurable.RegisterRequest{})
-	if err != nil {
-		return err
-	}
-	m.Config.AppConfig = appConfig.Config.(*app.Config)
-	return nil
-}
-
-func (m *AbstractManager) startNorthboundServer() error {
+func (m *Manager) startNorthboundServer() error {
 	s := northbound.NewServer(northbound.NewServerCfg(
-		m.Config.CAPath,
-		m.Config.KeyPath,
-		m.Config.CertPath,
-		int16(m.Config.GRPCPort),
+		m.config.CAPath,
+		m.config.KeyPath,
+		m.config.CertPath,
+		int16(m.config.GRPCPort),
 		true,
 		northbound.SecurityConfig{}))
 
-	s.AddService(nbi.NewService(m.Ctrls.KpiMonController))
+	s.AddService(nbi.NewService(m.measurementStore))
 
 	doneCh := make(chan error)
 	go func() {
@@ -177,27 +124,4 @@ func (m *AbstractManager) startNorthboundServer() error {
 		}
 	}()
 	return <-doneCh
-}
-
-func (m *AbstractManager) getReportPeriod() (uint64, error) {
-	interval, _ := m.Config.AppConfig.Get(utils.ReportPeriodConfigPath)
-	val, err := configutils.ToUint64(interval.Value)
-	if err != nil {
-		log.Error(err)
-		return 0, err
-	}
-
-	log.Infof("Received period value: %v", val)
-	return val, nil
-}
-
-func (m *AbstractManager) getGranularityPeriod() (uint64, error) {
-	granularity, _ := m.Config.AppConfig.Get(utils.GranularityPeriodConfigPath)
-	val, err := configutils.ToUint64(granularity.Value)
-	if err != nil {
-		log.Error(err)
-		return 0, err
-	}
-	log.Infof("Received granularity period value: %v", val)
-	return val, nil
 }
