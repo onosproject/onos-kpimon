@@ -303,7 +303,7 @@ func (m *Manager) newSubscription(ctx context.Context, e2NodeID topoapi.ID) erro
 	count := 0
 	notifier := func(err error, t time.Duration) {
 		count++
-		log.Info("Subscription failed to create for E2 node %s", e2NodeID)
+		log.Infof("Retrying, failed to create subscription for E2 node with ID %s due to %s", e2NodeID, err)
 	}
 
 	err := backoff.RetryNotify(func() error {
