@@ -10,6 +10,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/e2/subscription"
+	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
@@ -38,7 +39,8 @@ func NewManager(config Config) *Manager {
 	}
 	subscriptionBroker := broker.NewBroker()
 	measStore := measurements.NewStore()
-	monitor := monitoring.NewMonitor(subscriptionBroker, appCfg, measStore)
+	actionsStore := actions.NewStore()
+	monitor := monitoring.NewMonitor(subscriptionBroker, appCfg, measStore, actionsStore)
 
 	subManager, err := subscription.NewManager(
 		subscription.WithE2SubAddress("onos-e2sub", 5150),
@@ -47,7 +49,8 @@ func NewManager(config Config) *Manager {
 		subscription.WithAppConfig(appCfg),
 		subscription.WithAppID("onos-kpimon"),
 		subscription.WithBroker(subscriptionBroker),
-		subscription.WithMonitor(monitor))
+		subscription.WithMonitor(monitor),
+		subscription.WithActions(actionsStore))
 
 	if err != nil {
 		log.Warn(err)

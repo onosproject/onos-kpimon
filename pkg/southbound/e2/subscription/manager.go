@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/onosproject/onos-kpimon/pkg/store/actions"
+
 	"github.com/cenkalti/backoff/v4"
 
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -72,6 +74,7 @@ type Manager struct {
 	appConfig    *appConfig.AppConfig
 	streams      broker.Broker
 	monitor      *monitoring.Monitor
+	actionStore  actions.Store
 }
 
 // NewManager creates a new subscription manager
@@ -109,9 +112,10 @@ func NewManager(opts ...Option) (Manager, error) {
 			Name:    options.ServiceModel.Name,
 			Version: options.ServiceModel.Version,
 		},
-		appConfig: options.App.AppConfig,
-		streams:   options.App.Broker,
-		monitor:   options.App.Monitor,
+		appConfig:   options.App.AppConfig,
+		streams:     options.App.Broker,
+		monitor:     options.App.Monitor,
+		actionStore: options.App.Actions,
 	}, nil
 
 }
@@ -250,7 +254,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 		return err
 	}
 
-	actions, err := subutils.CreateSubscriptionActions(measurements, cells, uint32(granularityPeriod))
+	actions, err := m.createSubscriptionActions(ctx, measurements, cells, uint32(granularityPeriod))
 	if err != nil {
 		log.Warn(err)
 		return err

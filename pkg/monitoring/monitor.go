@@ -7,6 +7,8 @@ package monitoring
 import (
 	"context"
 
+	"github.com/onosproject/onos-kpimon/pkg/store/actions"
+
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
@@ -27,11 +29,13 @@ import (
 var log = logging.GetLogger("monitoring")
 
 // NewMonitor creates a new indication monitor
-func NewMonitor(streams broker.Broker, appConfig *appConfig.AppConfig, measurementStore measurmentStore.Store) *Monitor {
+func NewMonitor(streams broker.Broker, appConfig *appConfig.AppConfig,
+	measurementStore measurmentStore.Store, actionsStore actions.Store) *Monitor {
 	return &Monitor{
 		streams:          streams,
 		appConfig:        appConfig,
 		measurementStore: measurementStore,
+		actionStore:      actionsStore,
 	}
 }
 
@@ -39,6 +43,7 @@ func NewMonitor(streams broker.Broker, appConfig *appConfig.AppConfig, measureme
 type Monitor struct {
 	streams          broker.Broker
 	measurementStore measurmentStore.Store
+	actionStore      actions.Store
 	appConfig        *appConfig.AppConfig
 }
 
@@ -71,7 +76,19 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indic
 
 	var cid string
 	if indMessage.GetIndicationMessageFormat1().GetCellObjId() == nil {
-		// TODO
+		// Use the actions store to find cell object Id based on sub ID in action definition
+		key := actions.NewKey(actions.SubscriptionID{
+			SubID: indMessage.GetIndicationMessageFormat1().GetSubscriptId().GetValue(),
+		})
+
+		response, err := m.actionStore.Get(ctx, key)
+		if err != nil {
+			return err
+		}
+
+		actionDefinition := response.Value.(*e2smkpmv2.E2SmKpmActionDefinitionFormat1)
+		cid = actionDefinition.GetCellObjId().GetValue()
+
 	} else {
 		cid = indMessage.GetIndicationMessageFormat1().GetCellObjId().Value
 	}
