@@ -46,12 +46,14 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indic
 	indHeader := e2smkpmv2.E2SmKpmIndicationHeader{}
 	err := proto.Unmarshal(indication.Payload.Header, &indHeader)
 	if err != nil {
+		log.Warn(err)
 		return err
 	}
 
 	indMessage := e2smkpmv2.E2SmKpmIndicationMessage{}
 	err = proto.Unmarshal(indication.Payload.Message, &indMessage)
 	if err != nil {
+		log.Warn(err)
 		return err
 	}
 

@@ -3,6 +3,7 @@ module github.com/onosproject/onos-kpimon
 go 1.14
 
 require (
+	github.com/cenkalti/backoff/v4 v4.0.0
 	github.com/envoyproxy/protoc-gen-validate v0.6.1 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/google/uuid v1.1.2

@@ -7,6 +7,9 @@ package subscription
 import (
 	"context"
 	"strings"
+	"time"
+
+	"github.com/cenkalti/backoff/v4"
 
 	"github.com/google/uuid"
 
@@ -41,6 +44,21 @@ var log = logging.GetLogger("e2", "subscription", "manager")
 const (
 	kpmServiceModelOID = "1.3.6.1.4.1.53148.1.2.2.2"
 )
+
+const (
+	backoffInterval = 10 * time.Millisecond
+	maxBackoffTime  = 5 * time.Second
+)
+
+func newExpBackoff() *backoff.ExponentialBackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = backoffInterval
+	// MaxInterval caps the RetryInterval
+	b.MaxInterval = maxBackoffTime
+	// Never stops retrying
+	b.MaxElapsedTime = 0
+	return b
+}
 
 // SubManager subscription manager interface
 type SubManager interface {
@@ -182,7 +200,7 @@ func (m *Manager) getMeasurements(serviceModelsInfo map[string]*topoapi.ServiceM
 
 }
 
-func (m *Manager) sendOnStream(streamID broker.StreamID, ch chan indication.Indication) {
+func (m *Manager) sendIndicationOnStream(streamID broker.StreamID, ch chan indication.Indication) {
 	streamWriter, err := m.streams.GetStream(streamID)
 	if err != nil {
 		return
@@ -267,7 +285,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 		return err
 	}
 
-	go m.sendOnStream(stream.StreamID(), ch)
+	go m.sendIndicationOnStream(stream.StreamID(), ch)
 	go func() {
 		err = m.monitor.Start(ctx, sub, measurements)
 		if err != nil {
@@ -280,6 +298,24 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 
 }
 
+func (m *Manager) newSubscription(ctx context.Context, e2NodeID topoapi.ID) error {
+	// TODO revisit this after migrating to use new E2 sdk
+	count := 0
+	notifier := func(err error, t time.Duration) {
+		count++
+		log.Info("Subscription failed to create for E2 node %s", e2NodeID)
+	}
+
+	err := backoff.RetryNotify(func() error {
+		err := m.createSubscription(ctx, e2NodeID)
+		return err
+	}, newExpBackoff(), notifier)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *Manager) watchE2Connections(ctx context.Context) error {
 	ch := make(chan topoapi.Event)
 	err := m.rnibClient.WatchE2Connections(ctx, ch)
@@ -287,16 +323,18 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 		log.Warn(err)
 		return err
 	}
+
 	// creates a new subscription whenever there is a new E2 node connected and supports KPM service model
 	for topoEvent := range ch {
 		if topoEvent.Type == topoapi.EventType_ADDED || topoEvent.Type == topoapi.EventType_NONE {
 			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
 			e2NodeID := relation.Relation.TgtEntityID
-			err := m.createSubscription(ctx, e2NodeID)
-			if err != nil {
-				log.Warn(err)
-				return err
-			}
+			go func() {
+				err := m.newSubscription(ctx, e2NodeID)
+				if err != nil {
+					log.Warn(err)
+				}
+			}()
 		}
 
 	}
