@@ -14,5 +14,3 @@ require (
 	google.golang.org/grpc v1.33.2
 	google.golang.org/protobuf v1.26.0
 )
-
-replace github.com/onosproject/onos-ric-sdk-go => ../onos-ric-sdk-go
