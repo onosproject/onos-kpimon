@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
+	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/pdubuilder"
 	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
@@ -17,8 +17,8 @@ import (
 )
 
 // createSubscriptionActions creates subscription actions
-func (m *Manager) createSubscriptionActions(ctx context.Context, measurements []*topoapi.KPMMeasurement, cells []*topoapi.E2Cell, granularity uint32) ([]subscription.Action, error) {
-	actions := make([]subscription.Action, 0)
+func (m *Manager) createSubscriptionActions(ctx context.Context, measurements []*topoapi.KPMMeasurement, cells []*topoapi.E2Cell, granularity uint32) ([]e2api.Action, error) {
+	actions := make([]e2api.Action, 0)
 
 	for index, cell := range cells {
 		measInfoList := &e2smkpmv2.MeasurementInfoList{
@@ -63,17 +63,14 @@ func (m *Manager) createSubscriptionActions(ctx context.Context, measurements []
 				return nil, err
 			}
 
-			action := &subscription.Action{
+			action := &e2api.Action{
 				ID:   int32(index),
-				Type: subscription.ActionType_ACTION_TYPE_REPORT,
-				SubsequentAction: &subscription.SubsequentAction{
-					Type:       subscription.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
-					TimeToWait: subscription.TimeToWait_TIME_TO_WAIT_ZERO,
+				Type: e2api.ActionType_ACTION_TYPE_REPORT,
+				SubsequentAction: &e2api.SubsequentAction{
+					Type:       e2api.SubsequentActionType_SUBSEQUENT_ACTION_TYPE_CONTINUE,
+					TimeToWait: e2api.TimeToWait_TIME_TO_WAIT_ZERO,
 				},
-				Payload: subscription.Payload{
-					Encoding: subscription.Encoding_ENCODING_PROTO,
-					Data:     e2smKpmActionDefinitionProto,
-				},
+				Payload: e2smKpmActionDefinitionProto,
 			}
 
 			actions = append(actions, *action)

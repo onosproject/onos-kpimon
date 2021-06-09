@@ -244,8 +244,6 @@ github.com/onosproject/onos-lib-go v0.7.0 h1:+BxQc0K4nej8qsciArvk6QC3Do6VKQevbIe
 github.com/onosproject/onos-lib-go v0.7.0/go.mod h1:ttkK+fV2CULZFHiq6FBZ69i7/Nymi1Wow1DNy0Ik/2o=
 github.com/onosproject/onos-lib-go v0.7.7 h1:bDrvJfaxBPrN6cHyun19iOmzHerG0OrbdyBVrI9xldE=
 github.com/onosproject/onos-lib-go v0.7.7/go.mod h1:mNFl7cjlVLLPXvFOnRXS/Lao+8p2XDREPViHdkElOPE=
-github.com/onosproject/onos-ric-sdk-go v0.7.13 h1:9BkIAyrrf2aoFY0J9szDbbEAyo3N3HSxQ8lCT5pKZcQ=
-github.com/onosproject/onos-ric-sdk-go v0.7.13/go.mod h1:1t4i+D4Fvc6MJ5myh8SzuIXk3X2u7AcM5F/rldjtRYo=
 github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802 h1:WXFwJlWOJINlwlyAZuNo4GdYZS6qPX36+rRUncLmN8Q=
 github.com/openconfig/gnmi v0.0.0-20200617225440-d2b4e6a45802/go.mod h1:M/EcuapNQgvzxo1DDXHK4tx3QpYM/uG4l591v33jG2A=
 github.com/openconfig/goyang v0.0.0-20200115183954-d0a48929f0ea/go.mod h1:dhXaV0JgHJzdrHi2l+w0fZrwArtXL7jEFoiqLEdmkvU=

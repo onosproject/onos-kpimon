@@ -10,10 +10,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
+	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
-	e2sub "github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
+	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
 )
 
 const bufferMaxSize = 10000
@@ -27,7 +26,7 @@ type StreamReader interface {
 	// distributed randomly between them. If no indications are available, the goroutine will be blocked until
 	// an indication is received or the Context is canceled. If the context is canceled, a context.Canceled error
 	// will be returned. If the stream has been closed, an io.EOF error will be returned.
-	Recv(context.Context) (indication.Indication, error)
+	Recv(context.Context) (e2api.Indication, error)
 }
 
 // StreamWriter is a write stream
@@ -38,7 +37,7 @@ type StreamWriter interface {
 	// The Send method is non-blocking. If no StreamReader is immediately available to consume the indication
 	// it will be placed in a bounded memory buffer. If the buffer is full, an Unavailable error will be returned.
 	// This method is thread-safe.
-	Send(indication indication.Indication) error
+	Send(indication e2api.Indication) error
 }
 
 // StreamID is a stream identifier
@@ -47,9 +46,10 @@ type StreamID int
 // StreamIO is a base interface for Stream information
 type StreamIO interface {
 	io.Closer
-	SubscriptionID() subscription.ID
+	SubscriptionID() e2api.SubscriptionID
 	StreamID() StreamID
-	SubContext() e2sub.Context
+	Subscription() e2api.Subscription
+	Node() e2client.Node
 }
 
 // Stream is a read/write stream
@@ -59,13 +59,13 @@ type Stream interface {
 	StreamWriter
 }
 
-func newBufferedStream(id subscription.ID, streamID StreamID, subContext e2sub.Context) Stream {
-	ch := make(chan indication.Indication)
+func newBufferedStream(node e2client.Node, streamID StreamID, e2sub e2api.Subscription) Stream {
+	ch := make(chan e2api.Indication)
 	return &bufferedStream{
 		bufferedIO: &bufferedIO{
-			subID:      id,
-			streamID:   streamID,
-			subContext: subContext,
+			streamID: streamID,
+			e2sub:    e2sub,
+			node:     node,
 		},
 		bufferedReader: newBufferedReader(ch),
 		bufferedWriter: newBufferedWriter(ch),
@@ -73,17 +73,21 @@ func newBufferedStream(id subscription.ID, streamID StreamID, subContext e2sub.C
 }
 
 type bufferedIO struct {
-	subID      subscription.ID
-	subContext e2sub.Context
-	streamID   StreamID
+	e2sub    e2api.Subscription
+	streamID StreamID
+	node     e2client.Node
 }
 
-func (s *bufferedIO) SubContext() e2sub.Context {
-	return s.subContext
+func (s *bufferedIO) Subscription() e2api.Subscription {
+	return s.e2sub
 }
 
-func (s *bufferedIO) SubscriptionID() subscription.ID {
-	return s.subID
+func (s *bufferedIO) SubscriptionID() e2api.SubscriptionID {
+	return s.e2sub.ID
+}
+
+func (s *bufferedIO) Node() e2client.Node {
+	return s.node
 }
 
 func (s *bufferedIO) StreamID() StreamID {
@@ -98,29 +102,29 @@ type bufferedStream struct {
 
 var _ Stream = &bufferedStream{}
 
-func newBufferedReader(ch <-chan indication.Indication) *bufferedReader {
+func newBufferedReader(ch <-chan e2api.Indication) *bufferedReader {
 	return &bufferedReader{
 		ch: ch,
 	}
 }
 
 type bufferedReader struct {
-	ch <-chan indication.Indication
+	ch <-chan e2api.Indication
 }
 
-func (s *bufferedReader) Recv(ctx context.Context) (indication.Indication, error) {
+func (s *bufferedReader) Recv(ctx context.Context) (e2api.Indication, error) {
 	select {
 	case ind, ok := <-s.ch:
 		if !ok {
-			return indication.Indication{}, io.EOF
+			return e2api.Indication{}, io.EOF
 		}
 		return ind, nil
 	case <-ctx.Done():
-		return indication.Indication{}, ctx.Err()
+		return e2api.Indication{}, ctx.Err()
 	}
 }
 
-func newBufferedWriter(ch chan<- indication.Indication) *bufferedWriter {
+func newBufferedWriter(ch chan<- e2api.Indication) *bufferedWriter {
 	writer := &bufferedWriter{
 		ch:     ch,
 		buffer: list.New(),
@@ -131,7 +135,7 @@ func newBufferedWriter(ch chan<- indication.Indication) *bufferedWriter {
 }
 
 type bufferedWriter struct {
-	ch     chan<- indication.Indication
+	ch     chan<- e2api.Indication
 	buffer *list.List
 	cond   *sync.Cond
 	closed bool
@@ -155,22 +159,22 @@ func (s *bufferedWriter) drain() {
 }
 
 // next reads the next indication from the buffer or blocks until one becomes available
-func (s *bufferedWriter) next() (indication.Indication, bool) {
+func (s *bufferedWriter) next() (e2api.Indication, bool) {
 	s.cond.L.Lock()
 	defer s.cond.L.Unlock()
 	for s.buffer.Len() == 0 {
 		if s.closed {
-			return indication.Indication{}, false
+			return e2api.Indication{}, false
 		}
 		s.cond.Wait()
 	}
-	result := s.buffer.Front().Value.(indication.Indication)
+	result := s.buffer.Front().Value.(e2api.Indication)
 	s.buffer.Remove(s.buffer.Front())
 	return result, true
 }
 
 // Send appends the indication to the buffer and notifies the reader
-func (s *bufferedWriter) Send(ind indication.Indication) error {
+func (s *bufferedWriter) Send(ind e2api.Indication) error {
 	s.cond.L.Lock()
 	defer s.cond.L.Unlock()
 	if s.closed {
