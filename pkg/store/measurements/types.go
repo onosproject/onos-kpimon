@@ -6,7 +6,6 @@ package measurements
 
 // MeasurementItem measurement item
 type MeasurementItem struct {
-	StartTime          uint64
 	MeasurementRecords []MeasurementRecord
 }
 

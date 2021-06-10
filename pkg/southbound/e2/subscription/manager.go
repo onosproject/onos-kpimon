@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
 	"github.com/cenkalti/backoff/v4"
@@ -252,9 +250,8 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 
 	ch := make(chan e2api.Indication)
 	node := m.e2client.Node(e2client.NodeID(nodeID))
-	log.Info("Node ID:", node.ID())
 	subRequest := e2api.Subscription{
-		ID:      e2api.SubscriptionID(uuid.New().String()),
+		ID:      "onos-kpimon-subscription",
 		Actions: actions,
 		EventTrigger: e2api.EventTrigger{
 			Payload: eventTriggerData,

@@ -62,11 +62,11 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		return err
 	}
 
-	//log.Debugf("Received indication header format 1 %v:", indHeader.GetIndicationHeaderFormat1())
-	//log.Debugf("Received indication message format 1: %v", indMessage.GetIndicationMessageFormat1())
+	log.Debugf("Received indication header format 1 %v:", indHeader.GetIndicationHeaderFormat1())
+	log.Debugf("Received indication message format 1: %v", indMessage.GetIndicationMessageFormat1())
 
 	startTime := getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
-	//startTimeUnixNano := toUnixNano(int64(startTime))
+	startTimeUnixNano := toUnixNano(int64(startTime))
 
 	granularity, err := m.appConfig.GetGranularityPeriod()
 	if err != nil {
@@ -115,8 +115,7 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 				measValue = 0
 			}
 
-			timeStamp := startTime + granularity*uint64(i)
-			log.Debug("Start time vs granularity:", startTime, ":", timeStamp)
+			timeStamp := uint64(startTimeUnixNano) + granularity*uint64(1000000)*uint64(i)
 			if measInfoList[j].GetMeasType().GetMeasName().GetValue() != "" {
 				measName := measInfoList[j].GetMeasType().GetMeasName().GetValue()
 				measRecord := measurmentStore.MeasurementRecord{
@@ -139,14 +138,11 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		}
 
 		measItem := measurmentStore.MeasurementItem{
-			StartTime:          startTime,
 			MeasurementRecords: measRecords,
 		}
 		measItems = append(measItems, measItem)
 
 	}
-
-	log.Debugf("Test2 Len meas Items:", len(measItems))
 
 	cellID := measurmentStore.CellIdentity{
 		CellID: cid,

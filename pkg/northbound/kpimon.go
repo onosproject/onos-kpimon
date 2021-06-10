@@ -5,6 +5,8 @@
 package northbound
 
 import (
+	"context"
+
 	prototypes "github.com/gogo/protobuf/types"
 	"github.com/onosproject/onos-kpimon/pkg/store/event"
 	measurementStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
@@ -43,6 +45,14 @@ type Server struct {
 	measurementStore measurementStore.Store
 }
 
+func (s *Server) GetMeasurementTypes(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
+	panic("implement me")
+}
+
+func (s *Server) GetMeasurement(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
+	panic("implement me")
+}
+
 func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi.Kpimon_GetMeasurementsServer) error {
 	ch := make(chan event.Event)
 	err := s.measurementStore.Watch(server.Context(), ch)
@@ -56,7 +66,6 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 		key := e.Key.(measurementStore.Key)
 		measEntryItems := measEntry.Value.([]measurementStore.MeasurementItem)
 		measItem := &kpimonapi.MeasurementItem{}
-		log.Debugf("Test3 meas entry items len:", len(measEntryItems))
 		measItems := &kpimonapi.MeasurementItems{}
 		for _, entryItem := range measEntryItems {
 			measItem.MeasurementRecords = make([]*kpimonapi.MeasurementRecord, 0)
@@ -101,10 +110,8 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 			}
 
 			measItems.MeasurementItems = append(measItems.MeasurementItems, measItem)
-			measItems.StartTime = entryItem.StartTime
 
 		}
-		log.Debugf("Meas items len:", len(measItems.MeasurementItems))
 		measurements[key.CellIdentity.CellID] = measItems
 		err := server.Send(&kpimonapi.GetResponse{
 			Measurements: measurements,
