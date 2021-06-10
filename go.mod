@@ -14,3 +14,5 @@ require (
 	google.golang.org/grpc v1.33.2
 	google.golang.org/protobuf v1.26.0
 )
+
+replace github.com/onosproject/onos-api/go => ../onos-api/go

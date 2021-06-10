@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"time"
 
+	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+
 	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
 )
 
@@ -16,14 +18,14 @@ func toUnixNano(timeStamp int64) int64 {
 	return timeStampUnix
 }
 
-/*func getMeasurementName(measID string, measurements []*topoapi.KPMMeasurement) string {
+func getMeasurementName(measID string, measurements []*topoapi.KPMMeasurement) string {
 	for _, measurement := range measurements {
 		if measurement.GetID() == measID {
 			return measurement.GetName()
 		}
 	}
 	return ""
-}*/
+}
 
 func getTimeStampFromHeader(header *e2smkpmv2.E2SmKpmIndicationHeaderFormat1) uint64 {
 	timeBytes := (*header).GetColletStartTime().Value

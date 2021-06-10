@@ -6,6 +6,7 @@ package monitoring
 
 import (
 	"context"
+	"strconv"
 
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
@@ -61,11 +62,11 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		return err
 	}
 
-	log.Debugf("Received indication header format 1 %v:", indHeader.GetIndicationHeaderFormat1())
-	log.Debugf("Received indication message format 1: %v", indMessage.GetIndicationMessageFormat1())
+	//log.Debugf("Received indication header format 1 %v:", indHeader.GetIndicationHeaderFormat1())
+	//log.Debugf("Received indication message format 1: %v", indMessage.GetIndicationMessageFormat1())
 
 	startTime := getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
-	startTimeUnixNano := toUnixNano(int64(startTime))
+	//startTimeUnixNano := toUnixNano(int64(startTime))
 
 	granularity, err := m.appConfig.GetGranularityPeriod()
 	if err != nil {
@@ -97,7 +98,6 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 
 	measItems := make([]measurmentStore.MeasurementItem, 0)
 	for i, measDataItem := range measDataItems {
-
 		meadDataRecords := measDataItem.GetMeasRecord().GetValue()
 		measRecords := make([]measurmentStore.MeasurementRecord, 0)
 		for j, measDataRecord := range meadDataRecords {
@@ -115,9 +115,20 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 				measValue = 0
 			}
 
-			timeStamp := uint64(startTimeUnixNano) + granularity*uint64(1000000)*uint64(i)
+			timeStamp := startTime + granularity*uint64(i)
+			log.Debug("Start time vs granularity:", startTime, ":", timeStamp)
 			if measInfoList[j].GetMeasType().GetMeasName().GetValue() != "" {
 				measName := measInfoList[j].GetMeasType().GetMeasName().GetValue()
+				measRecord := measurmentStore.MeasurementRecord{
+					Timestamp:        timeStamp,
+					MeasurementName:  measName,
+					MeasurementValue: measValue,
+				}
+				measRecords = append(measRecords, measRecord)
+			} else if measInfoList[j].GetMeasType().GetMeasId().GetValue() != 0 {
+				measID := measInfoList[j].GetMeasType().GetMeasId().GetValue()
+				measIDString := strconv.Itoa(int(measID))
+				measName := getMeasurementName(measIDString, measurements)
 				measRecord := measurmentStore.MeasurementRecord{
 					Timestamp:        timeStamp,
 					MeasurementName:  measName,
@@ -128,11 +139,15 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		}
 
 		measItem := measurmentStore.MeasurementItem{
+			StartTime:          startTime,
 			MeasurementRecords: measRecords,
 		}
 		measItems = append(measItems, measItem)
 
 	}
+
+	log.Debugf("Test2 Len meas Items:", len(measItems))
+
 	cellID := measurmentStore.CellIdentity{
 		CellID: cid,
 	}
