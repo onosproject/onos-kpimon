@@ -112,8 +112,9 @@ func (s *store) Watch(ctx context.Context, ch chan<- event.Event) error {
 }
 
 // NewKey creates a new measurements map key
-func NewKey(CellID CellIdentity) Key {
+func NewKey(CellID CellIdentity, nodeID string) Key {
 	return Key{
+		NodeID:       nodeID,
 		CellIdentity: CellID,
 	}
 }
