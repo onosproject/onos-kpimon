@@ -91,8 +91,15 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 		// key := e.Key.(measurementStore.Key)
 		cellID := measEntry.Key.CellIdentity.CellID
 
+<<<<<<< HEAD
 		measItems := parseEntry(*measEntry)
 		measurements[cellID] = measItems
+||||||| constructed merge base
+			measItems.MeasurementItems = append(measItems.MeasurementItems, measItem)
+=======
+		measItems := parseEntry(measEntry)
+		measurements[cellID] = measItems
+>>>>>>> Adds parseEntry to GetMeasurements in kpimon northbound
 
 		err := server.Send(&kpimonapi.GetResponse{
 			Measurements: measurements,
@@ -104,8 +111,16 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 	return nil
 }
 
+<<<<<<< HEAD
 func parseEntry(entry measurementStore.Entry) *kpimonapi.MeasurementItems {
 	var err error
+||||||| constructed merge base
+func parseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
+	err := fmt.Errorf("")
+=======
+func parseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
+	var err error
+>>>>>>> Adds parseEntry to GetMeasurements in kpimon northbound
 
 	measEntryItems := entry.Value.([]measurementStore.MeasurementItem)
 	measItem := &kpimonapi.MeasurementItem{}
