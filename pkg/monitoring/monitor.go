@@ -6,23 +6,23 @@ package monitoring
 
 import (
 	"context"
+	"strconv"
 
+	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
 
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
 
 	measurmentStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
-	e2sub "github.com/onosproject/onos-ric-sdk-go/pkg/e2/subscription"
 
 	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 
-	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 )
 
@@ -47,16 +47,16 @@ type Monitor struct {
 	appConfig        *appConfig.AppConfig
 }
 
-func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indication.Indication, subID subscription.ID, measurements []*topoapi.KPMMeasurement) error {
+func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api.Indication, measurements []*topoapi.KPMMeasurement) error {
 	indHeader := e2smkpmv2.E2SmKpmIndicationHeader{}
-	err := proto.Unmarshal(indication.Payload.Header, &indHeader)
+	err := proto.Unmarshal(indication.Header, &indHeader)
 	if err != nil {
 		log.Warn(err)
 		return err
 	}
 
 	indMessage := e2smkpmv2.E2SmKpmIndicationMessage{}
-	err = proto.Unmarshal(indication.Payload.Message, &indMessage)
+	err = proto.Unmarshal(indication.Payload, &indMessage)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -98,7 +98,6 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indic
 
 	measItems := make([]measurmentStore.MeasurementItem, 0)
 	for i, measDataItem := range measDataItems {
-
 		meadDataRecords := measDataItem.GetMeasRecord().GetValue()
 		measRecords := make([]measurmentStore.MeasurementRecord, 0)
 		for j, measDataRecord := range meadDataRecords {
@@ -125,6 +124,16 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indic
 					MeasurementValue: measValue,
 				}
 				measRecords = append(measRecords, measRecord)
+			} else if measInfoList[j].GetMeasType().GetMeasId().GetValue() != 0 {
+				measID := measInfoList[j].GetMeasType().GetMeasId().GetValue()
+				measIDString := strconv.Itoa(int(measID))
+				measName := getMeasurementName(measIDString, measurements)
+				measRecord := measurmentStore.MeasurementRecord{
+					Timestamp:        timeStamp,
+					MeasurementName:  measName,
+					MeasurementValue: measValue,
+				}
+				measRecords = append(measRecords, measRecord)
 			}
 		}
 
@@ -134,6 +143,7 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indic
 		measItems = append(measItems, measItem)
 
 	}
+
 	cellID := measurmentStore.CellIdentity{
 		CellID: cid,
 	}
@@ -147,8 +157,8 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication indic
 	return nil
 }
 
-func (m *Monitor) processIndication(ctx context.Context, indication indication.Indication, subID subscription.ID, measurements []*topoapi.KPMMeasurement) error {
-	err := m.processIndicationFormat1(ctx, indication, subID, measurements)
+func (m *Monitor) processIndication(ctx context.Context, indication e2api.Indication, measurements []*topoapi.KPMMeasurement) error {
+	err := m.processIndicationFormat1(ctx, indication, measurements)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -158,8 +168,8 @@ func (m *Monitor) processIndication(ctx context.Context, indication indication.I
 }
 
 // Start start monitoring of indication messages for a given subscription ID
-func (m *Monitor) Start(ctx context.Context, e2sub e2sub.Context, measurements []*topoapi.KPMMeasurement) error {
-	streamReader, err := m.streams.OpenStream(e2sub)
+func (m *Monitor) Start(ctx context.Context, node e2client.Node, e2sub e2api.Subscription, measurements []*topoapi.KPMMeasurement) error {
+	streamReader, err := m.streams.OpenReader(node, e2sub)
 	if err != nil {
 		return err
 	}
@@ -169,7 +179,7 @@ func (m *Monitor) Start(ctx context.Context, e2sub e2sub.Context, measurements [
 		if err != nil {
 			return err
 		}
-		err = m.processIndication(ctx, indMsg, e2sub.ID(), measurements)
+		err = m.processIndication(ctx, indMsg, measurements)
 		if err != nil {
 			return err
 		}

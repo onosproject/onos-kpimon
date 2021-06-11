@@ -12,6 +12,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
 	"github.com/cenkalti/backoff/v4"
+	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 
@@ -21,13 +22,7 @@ import (
 
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 
-	"github.com/onosproject/onos-ric-sdk-go/pkg/app"
-
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
-
-	"github.com/onosproject/onos-ric-sdk-go/pkg/e2/indication"
-
-	"github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 
 	subutils "github.com/onosproject/onos-kpimon/pkg/utils/subscription"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
@@ -36,7 +31,7 @@ import (
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-kpimon/pkg/rnib"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
-	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2"
+	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
 )
 
 var log = logging.GetLogger("e2", "subscription", "manager")
@@ -85,20 +80,13 @@ func NewManager(opts ...Option) (Manager, error) {
 		opt.apply(&options)
 	}
 
-	e2Client, err := e2client.NewClient(e2client.Config{
-		AppID: app.ID(options.App.AppID),
-		E2TService: e2client.ServiceConfig{
-			Host: options.E2TService.Host,
-			Port: options.E2TService.Port,
-		},
-		SubscriptionService: e2client.ServiceConfig{
-			Host: options.E2SubService.Host,
-			Port: options.E2SubService.Port,
-		},
-	})
-	if err != nil {
-		return Manager{}, err
-	}
+	serviceModelName := e2client.ServiceModelName(options.ServiceModel.Name)
+	serviceModelVersion := e2client.ServiceModelVersion(options.ServiceModel.Version)
+	appID := e2client.AppID(options.App.AppID)
+	e2Client := e2client.NewClient(
+		e2client.WithServiceModel(serviceModelName, serviceModelVersion),
+		e2client.WithAppID(appID),
+		e2client.WithE2TAddress(options.E2TService.Host, options.E2TService.Port))
 
 	rnibClient, err := rnib.NewClient()
 	if err != nil {
@@ -203,8 +191,8 @@ func (m *Manager) getMeasurements(serviceModelsInfo map[string]*topoapi.ServiceM
 
 }
 
-func (m *Manager) sendIndicationOnStream(streamID broker.StreamID, ch chan indication.Indication) {
-	streamWriter, err := m.streams.GetStream(streamID)
+func (m *Manager) sendIndicationOnStream(streamID broker.StreamID, ch chan e2api.Indication) {
+	streamWriter, err := m.streams.GetWriter(streamID)
 	if err != nil {
 		return
 	}
@@ -260,36 +248,28 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 		return err
 	}
 
-	subRequest := subscription.SubscriptionDetails{
-		E2NodeID: subscription.E2NodeID(nodeID),
-		ServiceModel: subscription.ServiceModel{
-			Name:    subscription.ServiceModelName(m.serviceModel.Name),
-			Version: subscription.ServiceModelVersion(m.serviceModel.Version),
-		},
-		EventTrigger: subscription.EventTrigger{
-			Payload: subscription.Payload{
-				Encoding: subscription.Encoding_ENCODING_PROTO,
-				Data:     eventTriggerData,
-			},
-		},
+	ch := make(chan e2api.Indication)
+	node := m.e2client.Node(e2client.NodeID(nodeID))
+	subRequest := e2api.Subscription{
+		ID:      "onos-kpimon-subscription",
 		Actions: actions,
+		EventTrigger: e2api.EventTrigger{
+			Payload: eventTriggerData,
+		},
 	}
-
-	ch := make(chan indication.Indication)
-	sub, err := m.e2client.Subscribe(ctx, subRequest, ch)
+	err = node.Subscribe(ctx, &subRequest, ch)
 	if err != nil {
-		log.Warn(err)
 		return err
 	}
 
-	stream, err := m.streams.OpenStream(sub)
+	stream, err := m.streams.OpenReader(node, subRequest)
 	if err != nil {
 		return err
 	}
 
 	go m.sendIndicationOnStream(stream.StreamID(), ch)
 	go func() {
-		err = m.monitor.Start(ctx, sub, measurements)
+		err = m.monitor.Start(ctx, node, subRequest, measurements)
 		if err != nil {
 			log.Warn(err)
 		}
@@ -301,7 +281,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 }
 
 func (m *Manager) newSubscription(ctx context.Context, e2NodeID topoapi.ID) error {
-	// TODO revisit this after migrating to use new E2 sdk
+	// TODO revisit this after migrating to use new E2 sdk, it should be the responsibility of the SDK to retry on this call
 	count := 0
 	notifier := func(err error, t time.Duration) {
 		count++
