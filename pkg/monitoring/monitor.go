@@ -47,7 +47,8 @@ type Monitor struct {
 	appConfig        *appConfig.AppConfig
 }
 
-func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api.Indication, measurements []*topoapi.KPMMeasurement) error {
+func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api.Indication,
+	measurements []*topoapi.KPMMeasurement, nodeID topoapi.ID) error {
 	indHeader := e2smkpmv2.E2SmKpmIndicationHeader{}
 	err := proto.Unmarshal(indication.Header, &indHeader)
 	if err != nil {
@@ -148,7 +149,7 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		CellID: cid,
 	}
 
-	measurementKey := measurmentStore.NewKey(cellID)
+	measurementKey := measurmentStore.NewKey(cellID, string(nodeID))
 	_, err = m.measurementStore.Put(ctx, measurementKey, measItems)
 	if err != nil {
 		log.Warn(err)
@@ -157,8 +158,9 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 	return nil
 }
 
-func (m *Monitor) processIndication(ctx context.Context, indication e2api.Indication, measurements []*topoapi.KPMMeasurement) error {
-	err := m.processIndicationFormat1(ctx, indication, measurements)
+func (m *Monitor) processIndication(ctx context.Context, indication e2api.Indication,
+	measurements []*topoapi.KPMMeasurement, nodeID topoapi.ID) error {
+	err := m.processIndicationFormat1(ctx, indication, measurements, nodeID)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -168,7 +170,8 @@ func (m *Monitor) processIndication(ctx context.Context, indication e2api.Indica
 }
 
 // Start start monitoring of indication messages for a given subscription ID
-func (m *Monitor) Start(ctx context.Context, node e2client.Node, e2sub e2api.Subscription, measurements []*topoapi.KPMMeasurement) error {
+func (m *Monitor) Start(ctx context.Context, node e2client.Node, e2sub e2api.Subscription,
+	measurements []*topoapi.KPMMeasurement, nodeID topoapi.ID) error {
 	streamReader, err := m.streams.OpenReader(node, e2sub)
 	if err != nil {
 		return err
@@ -179,7 +182,7 @@ func (m *Monitor) Start(ctx context.Context, node e2client.Node, e2sub e2api.Sub
 		if err != nil {
 			return err
 		}
-		err = m.processIndication(ctx, indMsg, measurements)
+		err = m.processIndication(ctx, indMsg, measurements, nodeID)
 		if err != nil {
 			return err
 		}
