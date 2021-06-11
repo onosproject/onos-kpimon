@@ -6,6 +6,7 @@ package northbound
 
 import (
 	"context"
+	"fmt"
 
 	prototypes "github.com/gogo/protobuf/types"
 	"github.com/onosproject/onos-kpimon/pkg/store/event"
@@ -52,7 +53,30 @@ func (s *Server) GetMeasurementTypes(ctx context.Context, request *kpimonapi.Get
 
 // GetMeasurement get a snapshot of measurements
 func (s *Server) GetMeasurement(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
-	panic("implement me")
+
+	ch := make(chan measurementStore.Entry)
+	measurements := make(map[string]*kpimonapi.MeasurementItems)
+
+	go func(measurements map[string]*kpimonapi.MeasurementItems) {
+		for entry := range ch {
+			measItems := parseEntry(&entry)
+			cellID := entry.Key.CellIdentity.CellID
+			measurements[cellID] = measItems
+		}
+	}(measurements)
+
+	err := s.measurementStore.Entries(ctx, ch)
+	close(ch)
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := &kpimonapi.GetResponse{
+		Measurements: measurements,
+	}
+
+	return response, nil
 }
 
 // GetMeasurements get measurements in a stream
@@ -125,4 +149,56 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 	}
 	return nil
 
+}
+
+func parseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
+	err := fmt.Errorf("")
+
+	measEntryItems := entry.Value.([]measurementStore.MeasurementItem)
+	measItem := &kpimonapi.MeasurementItem{}
+	measItems := &kpimonapi.MeasurementItems{}
+	for _, entryItem := range measEntryItems {
+		measItem.MeasurementRecords = make([]*kpimonapi.MeasurementRecord, 0)
+		for _, record := range entryItem.MeasurementRecords {
+			var value *prototypes.Any
+			switch val := record.MeasurementValue.(type) {
+			case int64:
+				intValue := &kpimonapi.IntegerValue{Value: val}
+				value, err = prototypes.MarshalAny(intValue)
+				if err != nil {
+					log.Warn(err)
+					continue
+				}
+
+			case float64:
+				realValue := &kpimonapi.RealValue{
+					Value: val,
+				}
+				value, err = prototypes.MarshalAny(realValue)
+				if err != nil {
+					log.Warn(err)
+					continue
+				}
+			case int32:
+				noValue := &kpimonapi.NoValue{
+					Value: val,
+				}
+				value, err = prototypes.MarshalAny(noValue)
+				if err != nil {
+					log.Warn(err)
+					continue
+				}
+
+			}
+
+			measRecord := &kpimonapi.MeasurementRecord{
+				MeasurementName:  record.MeasurementName,
+				Timestamp:        record.Timestamp,
+				MeasurementValue: value,
+			}
+			measItem.MeasurementRecords = append(measItem.MeasurementRecords, measRecord)
+		}
+		measItems.MeasurementItems = append(measItems.MeasurementItems, measItem)
+	}
+	return measItems
 }
