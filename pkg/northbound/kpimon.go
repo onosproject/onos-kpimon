@@ -6,7 +6,6 @@ package northbound
 
 import (
 	"context"
-	"fmt"
 
 	prototypes "github.com/gogo/protobuf/types"
 	"github.com/onosproject/onos-kpimon/pkg/store/event"
@@ -53,7 +52,6 @@ func (s *Server) GetMeasurementTypes(ctx context.Context, request *kpimonapi.Get
 
 // GetMeasurement get a snapshot of measurements
 func (s *Server) GetMeasurement(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
-
 	ch := make(chan measurementStore.Entry)
 	measurements := make(map[string]*kpimonapi.MeasurementItems)
 
@@ -90,56 +88,12 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 	for e := range ch {
 		measurements := make(map[string]*kpimonapi.MeasurementItems)
 		measEntry := e.Value.(*measurementStore.Entry)
-		key := e.Key.(measurementStore.Key)
-		measEntryItems := measEntry.Value.([]measurementStore.MeasurementItem)
-		measItem := &kpimonapi.MeasurementItem{}
-		measItems := &kpimonapi.MeasurementItems{}
-		for _, entryItem := range measEntryItems {
-			measItem.MeasurementRecords = make([]*kpimonapi.MeasurementRecord, 0)
-			for _, record := range entryItem.MeasurementRecords {
-				var value *prototypes.Any
-				switch val := record.MeasurementValue.(type) {
-				case int64:
-					intValue := &kpimonapi.IntegerValue{Value: val}
-					value, err = prototypes.MarshalAny(intValue)
-					if err != nil {
-						log.Warn(err)
-						continue
-					}
+		// key := e.Key.(measurementStore.Key)
+		cellID := measEntry.Key.CellIdentity.CellID
 
-				case float64:
-					realValue := &kpimonapi.RealValue{
-						Value: val,
-					}
-					value, err = prototypes.MarshalAny(realValue)
-					if err != nil {
-						log.Warn(err)
-						continue
-					}
-				case int32:
-					noValue := &kpimonapi.NoValue{
-						Value: val,
-					}
-					value, err = prototypes.MarshalAny(noValue)
-					if err != nil {
-						log.Warn(err)
-						continue
-					}
+		measItems := parseEntry(measEntry)
+		measurements[cellID] = measItems
 
-				}
-
-				measRecord := &kpimonapi.MeasurementRecord{
-					MeasurementName:  record.MeasurementName,
-					Timestamp:        record.Timestamp,
-					MeasurementValue: value,
-				}
-				measItem.MeasurementRecords = append(measItem.MeasurementRecords, measRecord)
-			}
-
-			measItems.MeasurementItems = append(measItems.MeasurementItems, measItem)
-
-		}
-		measurements[key.CellIdentity.CellID] = measItems
 		err := server.Send(&kpimonapi.GetResponse{
 			Measurements: measurements,
 		})
@@ -148,11 +102,10 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 		}
 	}
 	return nil
-
 }
 
 func parseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
-	err := fmt.Errorf("")
+	var err error
 
 	measEntryItems := entry.Value.([]measurementStore.MeasurementItem)
 	measItem := &kpimonapi.MeasurementItem{}
