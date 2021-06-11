@@ -206,9 +206,9 @@ func (m *Manager) sendIndicationOnStream(streamID broker.StreamID, ch chan e2api
 	}
 }
 
-func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) error {
-	log.Info("Creating subscription for E2 node with ID:", nodeID)
-	aspects, err := m.rnibClient.GetE2NodeAspects(ctx, nodeID)
+func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) error {
+	log.Info("Creating subscription for E2 node with ID:", e2nodeID)
+	aspects, err := m.rnibClient.GetE2NodeAspects(ctx, e2nodeID)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -219,7 +219,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 		return err
 	}
 
-	cells, err := m.rnibClient.GetCells(ctx, nodeID)
+	cells, err := m.rnibClient.GetCells(ctx, e2nodeID)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -249,7 +249,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 	}
 
 	ch := make(chan e2api.Indication)
-	node := m.e2client.Node(e2client.NodeID(nodeID))
+	node := m.e2client.Node(e2client.NodeID(e2nodeID))
 	subRequest := e2api.Subscription{
 		ID:      "onos-kpimon-subscription",
 		Actions: actions,
@@ -269,7 +269,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 
 	go m.sendIndicationOnStream(stream.StreamID(), ch)
 	go func() {
-		err = m.monitor.Start(ctx, node, subRequest, measurements)
+		err = m.monitor.Start(ctx, node, subRequest, measurements, e2nodeID)
 		if err != nil {
 			log.Warn(err)
 		}

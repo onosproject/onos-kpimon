@@ -23,6 +23,7 @@ type CellIdentity struct {
 
 // Key is the key of monitoring result metric store
 type Key struct {
+	NodeID       string
 	CellIdentity CellIdentity
 }
 
