@@ -281,7 +281,7 @@ func (m *Manager) createSubscription(ctx context.Context, nodeID topoapi.ID) err
 }
 
 func (m *Manager) newSubscription(ctx context.Context, e2NodeID topoapi.ID) error {
-	// TODO revisit this after migrating to use new E2 sdk
+	// TODO revisit this after migrating to use new E2 sdk, it should be the responsibility of the SDK to retry on this call
 	count := 0
 	notifier := func(err error, t time.Duration) {
 		count++

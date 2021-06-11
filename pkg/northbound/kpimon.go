@@ -45,14 +45,17 @@ type Server struct {
 	measurementStore measurementStore.Store
 }
 
+// GetMeasurementTypes get measurement types
 func (s *Server) GetMeasurementTypes(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
 	panic("implement me")
 }
 
+// GetMeasurement get a snapshot of measurements
 func (s *Server) GetMeasurement(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
 	panic("implement me")
 }
 
+// GetMeasurements get measurements in a stream
 func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi.Kpimon_GetMeasurementsServer) error {
 	ch := make(chan event.Event)
 	err := s.measurementStore.Watch(server.Context(), ch)
