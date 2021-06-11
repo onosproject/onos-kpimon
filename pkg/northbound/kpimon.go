@@ -6,6 +6,7 @@ package northbound
 
 import (
 	"context"
+	"fmt"
 
 	prototypes "github.com/gogo/protobuf/types"
 	"github.com/onosproject/onos-kpimon/pkg/store/event"
@@ -59,7 +60,9 @@ func (s *Server) GetMeasurement(ctx context.Context, request *kpimonapi.GetReque
 		for entry := range ch {
 			measItems := parseEntry(entry)
 			cellID := entry.Key.CellIdentity.CellID
-			measurements[cellID] = measItems
+			nodeID := entry.Key.NodeID
+			keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
+			measurements[keyID] = measItems
 		}
 	}(measurements, ch)
 
@@ -90,16 +93,11 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 		measEntry := e.Value.(*measurementStore.Entry)
 		// key := e.Key.(measurementStore.Key)
 		cellID := measEntry.Key.CellIdentity.CellID
+		nodeID := measEntry.Key.NodeID
+		keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
 
-<<<<<<< HEAD
 		measItems := parseEntry(*measEntry)
-		measurements[cellID] = measItems
-||||||| constructed merge base
-			measItems.MeasurementItems = append(measItems.MeasurementItems, measItem)
-=======
-		measItems := parseEntry(measEntry)
-		measurements[cellID] = measItems
->>>>>>> Adds parseEntry to GetMeasurements in kpimon northbound
+		measurements[keyID] = measItems
 
 		err := server.Send(&kpimonapi.GetResponse{
 			Measurements: measurements,
@@ -111,16 +109,8 @@ func (s *Server) GetMeasurements(request *kpimonapi.GetRequest, server kpimonapi
 	return nil
 }
 
-<<<<<<< HEAD
 func parseEntry(entry measurementStore.Entry) *kpimonapi.MeasurementItems {
 	var err error
-||||||| constructed merge base
-func parseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
-	err := fmt.Errorf("")
-=======
-func parseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
-	var err error
->>>>>>> Adds parseEntry to GetMeasurements in kpimon northbound
 
 	measEntryItems := entry.Value.([]measurementStore.MeasurementItem)
 	measItem := &kpimonapi.MeasurementItem{}
