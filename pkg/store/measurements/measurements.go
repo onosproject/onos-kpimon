@@ -6,6 +6,7 @@ package measurements
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -54,7 +55,18 @@ func NewStore() Store {
 }
 
 func (s *store) Entries(ctx context.Context, ch chan<- Entry) error {
-	panic("implement me")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(s.measurements) == 0 {
+		return fmt.Errorf("no measurements entries stored")
+	}
+
+	for _, entry := range s.measurements {
+		ch <- *entry
+	}
+
+	return nil
 }
 
 func (s *store) Delete(ctx context.Context, key Key) error {
