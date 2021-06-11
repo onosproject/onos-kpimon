@@ -5,7 +5,6 @@
 package subscription
 
 import (
-	subapi "github.com/onosproject/onos-api/go/onos/e2sub/subscription"
 	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/pdubuilder"
 	"google.golang.org/protobuf/proto"
 )
@@ -28,35 +27,4 @@ func CreateEventTriggerData(rtPeriod uint32) ([]byte, error) {
 	}
 
 	return protoBytes, nil
-}
-
-// SubRequest subscription request information
-type SubRequest struct {
-	NodeID              string
-	ServiceModelName    subapi.ServiceModelName
-	ServiceModelVersion subapi.ServiceModelVersion
-	Actions             []subapi.Action
-	EncodingType        subapi.Encoding
-	EventTrigger        []byte
-}
-
-// Create  creates a subscription request
-func (subRequest *SubRequest) Create() (subapi.SubscriptionDetails, error) {
-	subReq := subapi.SubscriptionDetails{
-		E2NodeID: subapi.E2NodeID(subRequest.NodeID),
-		ServiceModel: subapi.ServiceModel{
-			Name:    subRequest.ServiceModelName,
-			Version: subRequest.ServiceModelVersion,
-		},
-		EventTrigger: subapi.EventTrigger{
-			Payload: subapi.Payload{
-				Encoding: subRequest.EncodingType,
-				Data:     subRequest.EventTrigger,
-			},
-		},
-		Actions: subRequest.Actions,
-	}
-
-	return subReq, nil
-
 }
