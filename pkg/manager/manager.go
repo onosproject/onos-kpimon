@@ -20,15 +20,14 @@ var log = logging.GetLogger("manager")
 
 // Config is a manager configuration
 type Config struct {
-	CAPath        string
-	KeyPath       string
-	CertPath      string
-	E2tEndpoint   string
-	E2SubEndpoint string
-	GRPCPort      int
-	RicActionID   int32
-	SMName        string
-	SMVersion     string
+	CAPath      string
+	KeyPath     string
+	CertPath    string
+	E2tEndpoint string
+	GRPCPort    int
+	RicActionID int32
+	SMName      string
+	SMVersion   string
 }
 
 // NewManager generates the new KPIMON xAPP manager
@@ -43,9 +42,9 @@ func NewManager(config Config) *Manager {
 	monitor := monitoring.NewMonitor(subscriptionBroker, appCfg, measStore, actionsStore)
 
 	subManager, err := subscription.NewManager(
-		subscription.WithE2SubAddress("onos-e2sub", 5150),
 		subscription.WithE2TAddress("onos-e2t", 5150),
-		subscription.WithServiceModel("oran-e2sm-kpm", "v2"),
+		subscription.WithServiceModel(subscription.ServiceModelName(config.SMName),
+			subscription.ServiceModelVersion(config.SMVersion)),
 		subscription.WithAppConfig(appCfg),
 		subscription.WithAppID("onos-kpimon"),
 		subscription.WithBroker(subscriptionBroker),
