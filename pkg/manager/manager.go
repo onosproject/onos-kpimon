@@ -5,6 +5,7 @@
 package manager
 
 import (
+	"context"
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
@@ -12,6 +13,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/southbound/e2/subscription"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
+	"github.com/onosproject/onos-kpimon/pkg/uenib"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 )
@@ -87,6 +89,7 @@ func (m *Manager) Close() {
 
 func (m *Manager) start() error {
 	err := m.startNorthboundServer()
+	go m.startUENIBUpdater()
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -123,4 +126,10 @@ func (m *Manager) startNorthboundServer() error {
 		}
 	}()
 	return <-doneCh
+}
+
+func (m *Manager) startUENIBUpdater() {
+	ctx := context.Background()
+	s := uenib.NewUENIBClient(ctx, m.config.CertPath, m.config.KeyPath, m.measurementStore)
+	s.Run(ctx)
 }
