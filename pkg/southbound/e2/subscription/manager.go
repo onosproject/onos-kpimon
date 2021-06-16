@@ -171,7 +171,7 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 
 }
 
-func (m *Manager) getMeasurements(serviceModelsInfo map[string]*topoapi.ServiceModelInfo) ([]*topoapi.KPMMeasurement, error) {
+func (m *Manager) getReportStyles(serviceModelsInfo map[string]*topoapi.ServiceModelInfo) ([]*topoapi.KPMReportStyle, error) {
 	for _, sm := range serviceModelsInfo {
 		smName := strings.ToLower(sm.Name)
 		if smName == string(m.serviceModel.Name) && sm.OID == kpmServiceModelOID {
@@ -182,13 +182,12 @@ func (m *Manager) getMeasurements(serviceModelsInfo map[string]*topoapi.ServiceM
 					if err != nil {
 						return nil, err
 					}
-					return kpmRanFunction.Measurements, nil
+					return kpmRanFunction.ReportStyles, nil
 				}
 			}
 		}
 	}
-	return nil, errors.New(errors.NotFound, "cannot retrieve measurement names")
-
+	return nil, errors.New(errors.NotFound, "cannot retrieve report styles")
 }
 
 func (m *Manager) sendIndicationOnStream(streamID broker.StreamID, ch chan e2api.Indication) {
@@ -213,7 +212,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		log.Warn(err)
 		return err
 	}
-	measurements, err := m.getMeasurements(aspects.ServiceModels)
+	reportStyles, err := m.getReportStyles(aspects.ServiceModels)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -242,39 +241,44 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		return err
 	}
 
-	actions, err := m.createSubscriptionActions(ctx, measurements, cells, uint32(granularityPeriod))
-	if err != nil {
-		log.Warn(err)
-		return err
-	}
-
-	ch := make(chan e2api.Indication)
-	node := m.e2client.Node(e2client.NodeID(e2nodeID))
-	subRequest := e2api.Subscription{
-		ID:      "onos-kpimon-subscription",
-		Actions: actions,
-		EventTrigger: e2api.EventTrigger{
-			Payload: eventTriggerData,
-		},
-	}
-	err = node.Subscribe(ctx, &subRequest, ch)
-	if err != nil {
-		return err
-	}
-
-	stream, err := m.streams.OpenReader(node, subRequest)
-	if err != nil {
-		return err
-	}
-
-	go m.sendIndicationOnStream(stream.StreamID(), ch)
-	go func() {
-		err = m.monitor.Start(ctx, node, subRequest, measurements, e2nodeID)
+	log.Debug("Report styles:", reportStyles)
+	// TODO we should check if for each report style a subscription should be created or for all of them
+	for _, reportStyle := range reportStyles {
+		actions, err := m.createSubscriptionActions(ctx, reportStyle, cells, uint32(granularityPeriod))
 		if err != nil {
 			log.Warn(err)
+			return err
+		}
+		measurements := reportStyle.Measurements
+
+		ch := make(chan e2api.Indication)
+		node := m.e2client.Node(e2client.NodeID(e2nodeID))
+		subRequest := e2api.Subscription{
+			ID:      "onos-kpimon-subscription",
+			Actions: actions,
+			EventTrigger: e2api.EventTrigger{
+				Payload: eventTriggerData,
+			},
+		}
+		err = node.Subscribe(ctx, &subRequest, ch)
+		if err != nil {
+			return err
 		}
 
-	}()
+		stream, err := m.streams.OpenReader(node, subRequest)
+		if err != nil {
+			return err
+		}
+
+		go m.sendIndicationOnStream(stream.StreamID(), ch)
+		go func() {
+			err = m.monitor.Start(ctx, node, subRequest, measurements, e2nodeID)
+			if err != nil {
+				log.Warn(err)
+			}
+
+		}()
+	}
 
 	return nil
 

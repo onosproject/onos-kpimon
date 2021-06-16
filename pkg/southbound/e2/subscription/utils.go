@@ -17,14 +17,15 @@ import (
 )
 
 // createSubscriptionActions creates subscription actions
-func (m *Manager) createSubscriptionActions(ctx context.Context, measurements []*topoapi.KPMMeasurement, cells []*topoapi.E2Cell, granularity uint32) ([]e2api.Action, error) {
+func (m *Manager) createSubscriptionActions(ctx context.Context, reportStyle *topoapi.KPMReportStyle, cells []*topoapi.E2Cell, granularity uint32) ([]e2api.Action, error) {
 	actions := make([]e2api.Action, 0)
 
 	for index, cell := range cells {
 		measInfoList := &e2smkpmv2.MeasurementInfoList{
 			Value: make([]*e2smkpmv2.MeasurementInfoItem, 0),
 		}
-		for _, measurement := range measurements {
+
+		for _, measurement := range reportStyle.Measurements {
 			measTypeMeasName, err := pdubuilder.CreateMeasurementTypeMeasName(measurement.GetName())
 			if err != nil {
 				return nil, err
@@ -37,7 +38,7 @@ func (m *Manager) createSubscriptionActions(ctx context.Context, measurements []
 			measInfoList.Value = append(measInfoList.Value, meanInfoItem)
 
 			subID := int64(uuid.New().ID())
-			actionDefinition, err := pdubuilder.CreateActionDefinitionFormat1(cell.GetCID(), measInfoList, granularity, subID)
+			actionDefinition, err := pdubuilder.CreateActionDefinitionFormat1(cell.GetCellObjectID(), measInfoList, granularity, subID)
 			if err != nil {
 				return nil, err
 			}
@@ -52,8 +53,7 @@ func (m *Manager) createSubscriptionActions(ctx context.Context, measurements []
 				return nil, err
 			}
 
-			// TODO ric style types should be retrieved from R-NIB
-			e2smKpmActionDefinition, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(3, actionDefinition)
+			e2smKpmActionDefinition, err := pdubuilder.CreateE2SmKpmActionDefinitionFormat1(reportStyle.Type, actionDefinition)
 			if err != nil {
 				return nil, err
 			}
