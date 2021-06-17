@@ -47,8 +47,8 @@ func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
 
 	e2NodeIDs := make([]topoapi.ID, len(objects))
 	for _, object := range objects {
-		relation := object.Obj.(*topoapi.Object_Relation)
-		e2NodeID := relation.Relation.TgtEntityID
+		relation := object.GetRelation()
+		e2NodeID := relation.TgtEntityID
 		e2NodeIDs = append(e2NodeIDs, e2NodeID)
 	}
 
@@ -77,9 +77,9 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 	var cells []*topoapi.E2Cell
 
 	for _, obj := range objects {
-		relation := obj.Obj.(*topoapi.Object_Relation)
-		if relation.Relation.SrcEntityID == nodeID {
-			targetEntity := relation.Relation.TgtEntityID
+		relation := obj.GetRelation()
+		if relation.SrcEntityID == nodeID {
+			targetEntity := relation.TgtEntityID
 			object, err := c.client.Get(ctx, targetEntity)
 			if err != nil {
 				return nil, err
