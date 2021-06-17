@@ -6,6 +6,7 @@ package subscription
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -254,7 +255,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		ch := make(chan e2api.Indication)
 		node := m.e2client.Node(e2client.NodeID(e2nodeID))
 		subRequest := e2api.Subscription{
-			ID:      "onos-kpimon-subscription",
+			ID:      e2api.SubscriptionID(fmt.Sprintf("%s-%s", "onos-kpimon-subscription", e2nodeID)),
 			Actions: actions,
 			EventTrigger: e2api.EventTrigger{
 				Payload: eventTriggerData,
