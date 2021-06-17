@@ -7,18 +7,14 @@ package northbound
 import (
 	"context"
 	"fmt"
-
-	prototypes "github.com/gogo/protobuf/types"
-	"github.com/onosproject/onos-kpimon/pkg/store/event"
-	measurementStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
-	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/onos-kpimon/pkg/utils"
 
 	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
+	"github.com/onosproject/onos-kpimon/pkg/store/event"
+	measurementStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-lib-go/pkg/logging/service"
 	"google.golang.org/grpc"
 )
-
-var log = logging.GetLogger("northbound")
 
 // NewService returns a new KPIMON interface service.
 func NewService(store measurementStore.Store) service.Service {
@@ -53,7 +49,7 @@ func (s *Server) ListMeasurements(ctx context.Context, request *kpimonapi.GetReq
 
 	go func(measurements map[string]*kpimonapi.MeasurementItems, ch chan measurementStore.Entry) {
 		for entry := range ch {
-			measItems := parseEntry(entry)
+			measItems := utils.ParseEntry(entry)
 			cellID := entry.Key.CellIdentity.CellID
 			nodeID := entry.Key.NodeID
 			keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
@@ -91,7 +87,7 @@ func (s *Server) WatchMeasurements(request *kpimonapi.GetRequest, server kpimona
 		nodeID := measEntry.Key.NodeID
 		keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
 
-		measItems := parseEntry(*measEntry)
+		measItems := utils.ParseEntry(*measEntry)
 		measurements[keyID] = measItems
 
 		err := server.Send(&kpimonapi.GetResponse{
@@ -102,56 +98,4 @@ func (s *Server) WatchMeasurements(request *kpimonapi.GetRequest, server kpimona
 		}
 	}
 	return nil
-}
-
-func parseEntry(entry measurementStore.Entry) *kpimonapi.MeasurementItems {
-	var err error
-
-	measEntryItems := entry.Value.([]measurementStore.MeasurementItem)
-	measItem := &kpimonapi.MeasurementItem{}
-	measItems := &kpimonapi.MeasurementItems{}
-	for _, entryItem := range measEntryItems {
-		measItem.MeasurementRecords = make([]*kpimonapi.MeasurementRecord, 0)
-		for _, record := range entryItem.MeasurementRecords {
-			var value *prototypes.Any
-			switch val := record.MeasurementValue.(type) {
-			case int64:
-				intValue := &kpimonapi.IntegerValue{Value: val}
-				value, err = prototypes.MarshalAny(intValue)
-				if err != nil {
-					log.Warn(err)
-					continue
-				}
-
-			case float64:
-				realValue := &kpimonapi.RealValue{
-					Value: val,
-				}
-				value, err = prototypes.MarshalAny(realValue)
-				if err != nil {
-					log.Warn(err)
-					continue
-				}
-			case int32:
-				noValue := &kpimonapi.NoValue{
-					Value: val,
-				}
-				value, err = prototypes.MarshalAny(noValue)
-				if err != nil {
-					log.Warn(err)
-					continue
-				}
-
-			}
-
-			measRecord := &kpimonapi.MeasurementRecord{
-				MeasurementName:  record.MeasurementName,
-				Timestamp:        record.Timestamp,
-				MeasurementValue: value,
-			}
-			measItem.MeasurementRecords = append(measItem.MeasurementRecords, measRecord)
-		}
-		measItems.MeasurementItems = append(measItems.MeasurementItems, measItem)
-	}
-	return measItems
 }
