@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
+
+	"github.com/onosproject/onos-kpimon/pkg/monitoring"
+
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
 	"github.com/cenkalti/backoff/v4"
@@ -18,8 +22,6 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 
 	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
-
-	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 
@@ -64,13 +66,13 @@ type SubManager interface {
 
 // Manager subscription manager
 type Manager struct {
-	e2client     e2client.Client
-	rnibClient   rnib.Client
-	serviceModel ServiceModelOptions
-	appConfig    *appConfig.AppConfig
-	streams      broker.Broker
-	monitor      *monitoring.Monitor
-	actionStore  actions.Store
+	e2client         e2client.Client
+	rnibClient       rnib.Client
+	serviceModel     ServiceModelOptions
+	appConfig        *appConfig.AppConfig
+	streams          broker.Broker
+	actionStore      actions.Store
+	measurementStore measurements.Store
 }
 
 // NewManager creates a new subscription manager
@@ -101,10 +103,10 @@ func NewManager(opts ...Option) (Manager, error) {
 			Name:    options.ServiceModel.Name,
 			Version: options.ServiceModel.Version,
 		},
-		appConfig:   options.App.AppConfig,
-		streams:     options.App.Broker,
-		monitor:     options.App.Monitor,
-		actionStore: options.App.Actions,
+		appConfig:        options.App.AppConfig,
+		streams:          options.App.Broker,
+		actionStore:      options.App.ActionStore,
+		measurementStore: options.App.MeasurementStore,
 	}, nil
 
 }
@@ -272,19 +274,24 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		}
 
 		log.Debugf("Channel ID:%s", channelID)
-		stream, err := m.streams.OpenReader(ctx, node, subName, channelID, subSpec)
+		streamReader, err := m.streams.OpenReader(ctx, node, subName, channelID, subSpec)
 		if err != nil {
 			return err
 		}
 
-		go m.sendIndicationOnStream(stream.StreamID(), ch)
-		go func() {
-			err = m.monitor.Start(ctx, node, subName, channelID, subSpec, measurements, e2nodeID)
-			if err != nil {
-				log.Warn(err)
-			}
+		go m.sendIndicationOnStream(streamReader.StreamID(), ch)
+		monitor := monitoring.NewMonitor(monitoring.WithAppConfig(m.appConfig),
+			monitoring.WithActionStore(m.actionStore),
+			monitoring.WithMeasurements(measurements),
+			monitoring.WithNode(node),
+			monitoring.WithStreamReader(streamReader),
+			monitoring.WithNodeID(e2nodeID),
+			monitoring.WithMeasurementStore(m.measurementStore))
+		err = monitor.Start(ctx)
+		if err != nil {
+			log.Warn(err)
+		}
 
-		}()
 	}
 
 	return nil

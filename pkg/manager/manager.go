@@ -6,9 +6,9 @@ package manager
 
 import (
 	"context"
+
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
-	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	nbi "github.com/onosproject/onos-kpimon/pkg/northbound"
 	"github.com/onosproject/onos-kpimon/pkg/southbound/e2/subscription"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
@@ -41,7 +41,6 @@ func NewManager(config Config) *Manager {
 	subscriptionBroker := broker.NewBroker()
 	measStore := measurements.NewStore()
 	actionsStore := actions.NewStore()
-	monitor := monitoring.NewMonitor(subscriptionBroker, appCfg, measStore, actionsStore)
 
 	subManager, err := subscription.NewManager(
 		subscription.WithE2TAddress("onos-e2t", 5150),
@@ -50,8 +49,8 @@ func NewManager(config Config) *Manager {
 		subscription.WithAppConfig(appCfg),
 		subscription.WithAppID("onos-kpimon"),
 		subscription.WithBroker(subscriptionBroker),
-		subscription.WithMonitor(monitor),
-		subscription.WithActions(actionsStore))
+		subscription.WithActionStore(actionsStore),
+		subscription.WithMeasurementStore(measStore))
 
 	if err != nil {
 		log.Warn(err)
