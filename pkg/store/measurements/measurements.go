@@ -33,7 +33,7 @@ type Store interface {
 	Delete(ctx context.Context, key Key) error
 
 	// Entries list all of the metric store entries
-	Entries(ctx context.Context, ch chan<- Entry) error
+	Entries(ctx context.Context, ch chan<- *Entry) error
 
 	// Watch measurement store changes
 	Watch(ctx context.Context, ch chan<- event.Event) error
@@ -54,7 +54,7 @@ func NewStore() Store {
 	}
 }
 
-func (s *store) Entries(ctx context.Context, ch chan<- Entry) error {
+func (s *store) Entries(ctx context.Context, ch chan<- *Entry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -63,7 +63,7 @@ func (s *store) Entries(ctx context.Context, ch chan<- Entry) error {
 	}
 
 	for _, entry := range s.measurements {
-		ch <- *entry
+		ch <- entry
 	}
 
 	return nil
