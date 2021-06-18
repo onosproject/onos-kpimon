@@ -46,9 +46,10 @@ type StreamID int
 // StreamIO is a base interface for Stream information
 type StreamIO interface {
 	io.Closer
-	SubscriptionID() e2api.SubscriptionID
+	ChannelID() e2api.ChannelID
 	StreamID() StreamID
-	Subscription() e2api.Subscription
+	SubscriptionName() string
+	Subscription() e2api.SubscriptionSpec
 	Node() e2client.Node
 }
 
@@ -59,13 +60,15 @@ type Stream interface {
 	StreamWriter
 }
 
-func newBufferedStream(node e2client.Node, streamID StreamID, e2sub e2api.Subscription) Stream {
+func newBufferedStream(node e2client.Node, subName string, streamID StreamID, channelID e2api.ChannelID, subSpec e2api.SubscriptionSpec) Stream {
 	ch := make(chan e2api.Indication)
 	return &bufferedStream{
 		bufferedIO: &bufferedIO{
-			streamID: streamID,
-			e2sub:    e2sub,
-			node:     node,
+			streamID:  streamID,
+			channelID: channelID,
+			subSepc:   subSpec,
+			node:      node,
+			subName:   subName,
 		},
 		bufferedReader: newBufferedReader(ch),
 		bufferedWriter: newBufferedWriter(ch),
@@ -73,17 +76,23 @@ func newBufferedStream(node e2client.Node, streamID StreamID, e2sub e2api.Subscr
 }
 
 type bufferedIO struct {
-	e2sub    e2api.Subscription
-	streamID StreamID
-	node     e2client.Node
+	subSepc   e2api.SubscriptionSpec
+	streamID  StreamID
+	channelID e2api.ChannelID
+	node      e2client.Node
+	subName   string
 }
 
-func (s *bufferedIO) Subscription() e2api.Subscription {
-	return s.e2sub
+func (s *bufferedIO) SubscriptionName() string {
+	return s.subName
 }
 
-func (s *bufferedIO) SubscriptionID() e2api.SubscriptionID {
-	return s.e2sub.ID
+func (s *bufferedIO) Subscription() e2api.SubscriptionSpec {
+	return s.subSepc
+}
+
+func (s *bufferedIO) ChannelID() e2api.ChannelID {
+	return s.channelID
 }
 
 func (s *bufferedIO) Node() e2client.Node {

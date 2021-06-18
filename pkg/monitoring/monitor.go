@@ -170,9 +170,10 @@ func (m *Monitor) processIndication(ctx context.Context, indication e2api.Indica
 }
 
 // Start start monitoring of indication messages for a given subscription ID
-func (m *Monitor) Start(ctx context.Context, node e2client.Node, e2sub e2api.Subscription,
+func (m *Monitor) Start(ctx context.Context, node e2client.Node,
+	subName string, channelID e2api.ChannelID, subSepc e2api.SubscriptionSpec,
 	measurements []*topoapi.KPMMeasurement, nodeID topoapi.ID) error {
-	streamReader, err := m.streams.OpenReader(node, e2sub)
+	streamReader, err := m.streams.OpenReader(ctx, node, subName, channelID, subSepc)
 	if err != nil {
 		return err
 	}

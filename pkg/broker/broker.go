@@ -5,6 +5,7 @@
 package broker
 
 import (
+	"context"
 	"io"
 	"sync"
 
@@ -19,7 +20,7 @@ var log = logging.GetLogger("broker")
 // NewBroker creates a new subscription stream broker
 func NewBroker() Broker {
 	return &streamBroker{
-		subs:    make(map[e2api.SubscriptionID]Stream),
+		subs:    make(map[e2api.ChannelID]Stream),
 		streams: make(map[StreamID]Stream),
 	}
 }
@@ -33,41 +34,42 @@ type Broker interface {
 	// OpenReader opens a subscription Stream
 	// If a stream already exists for the subscription, the existing stream will be returned.
 	// If no stream exists, a new stream will be allocated with a unique StreamID.
-	OpenReader(node e2client.Node, e2sub e2api.Subscription) (StreamReader, error)
+	OpenReader(ctx context.Context, node e2client.Node,
+		subName string, id e2api.ChannelID, subSpec e2api.SubscriptionSpec) (StreamReader, error)
 
 	// CloseStream closes a subscription Stream
 	// The associated Stream will be closed gracefully: the reader will continue receiving pending indications
 	// until the buffer is empty.
-	CloseStream(id e2api.SubscriptionID) (StreamReader, error)
+	CloseStream(ctx context.Context, id e2api.ChannelID) (StreamReader, error)
 
 	// GetWriter gets a write stream by its StreamID
 	// If no Stream exists for the given StreamID, a NotFound error will be returned.
 	GetWriter(id StreamID) (StreamWriter, error)
 
-	// SubIDs get all of subscription IDs
-	SubIDs() []e2api.SubscriptionID
+	// ChannelIDs get all of subscription channel IDs
+	ChannelIDs() []e2api.ChannelID
 }
 
 type streamBroker struct {
-	subs     map[e2api.SubscriptionID]Stream
+	subs     map[e2api.ChannelID]Stream
 	streams  map[StreamID]Stream
 	streamID StreamID
 	mu       sync.RWMutex
 }
 
-func (b *streamBroker) SubIDs() []e2api.SubscriptionID {
+func (b *streamBroker) ChannelIDs() []e2api.ChannelID {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	subIDs := make([]e2api.SubscriptionID, len(b.subs))
-	for subID := range b.subs {
-		subIDs = append(subIDs, subID)
+	channelIDs := make([]e2api.ChannelID, len(b.subs))
+	for channelID := range b.subs {
+		channelIDs = append(channelIDs, channelID)
 	}
-	return subIDs
+	return channelIDs
 }
 
-func (b *streamBroker) OpenReader(node e2client.Node, e2sub e2api.Subscription) (StreamReader, error) {
+func (b *streamBroker) OpenReader(ctx context.Context, node e2client.Node, subName string, channelID e2api.ChannelID, subSpec e2api.SubscriptionSpec) (StreamReader, error) {
 	b.mu.RLock()
-	stream, ok := b.subs[e2sub.ID]
+	stream, ok := b.subs[channelID]
 	b.mu.RUnlock()
 	if ok {
 		return stream, nil
@@ -75,35 +77,33 @@ func (b *streamBroker) OpenReader(node e2client.Node, e2sub e2api.Subscription) 
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	stream, ok = b.subs[e2sub.ID]
-	if ok {
-		return stream, nil
-	}
 
 	b.streamID++
 	streamID := b.streamID
-	stream = newBufferedStream(node, streamID, e2sub)
-	b.subs[e2sub.ID] = stream
+	stream = newBufferedStream(node, subName, streamID, channelID, subSpec)
+	b.subs[channelID] = stream
 	b.streams[streamID] = stream
-	log.Infof("Opened new stream %d for subscription '%s'", streamID, e2sub.ID)
+	log.Infof("Opened new stream %d for subscription channel '%s'", streamID, channelID)
 	return stream, nil
 }
 
-func (b *streamBroker) CloseStream(id e2api.SubscriptionID) (StreamReader, error) {
+func (b *streamBroker) CloseStream(ctx context.Context, id e2api.ChannelID) (StreamReader, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	stream, ok := b.subs[id]
 	if !ok {
 		return nil, errors.NewNotFound("subscription '%s' not found", id)
 	}
-	delete(b.subs, stream.SubscriptionID())
-	delete(b.streams, stream.StreamID())
 
-	// TODO we should have a function in SDK to initiate subscription delete request
-	/*err := stream.Node().Close()
+	log.Debugf("Deleting Subscription: %s", stream.SubscriptionName())
+	err := stream.Node().Unsubscribe(ctx, stream.SubscriptionName())
 	if err != nil {
 		return nil, err
-	}*/
+	}
+
+	delete(b.subs, stream.ChannelID())
+	delete(b.streams, stream.StreamID())
+
 	log.Infof("Closed stream %d for subscription '%s'", stream.StreamID(), id)
 	return stream, stream.Close()
 }

@@ -140,14 +140,16 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 
 	// Deletes all of subscriptions
 	for configEvent := range ch {
+		log.Debugf("Config event is received: %v", configEvent)
 		if configEvent.Key == utils.ReportPeriodConfigPath {
-			subIDs := m.streams.SubIDs()
-			for _, subID := range subIDs {
-				_, err := m.streams.CloseStream(subID)
+			channelIDs := m.streams.ChannelIDs()
+			for _, channelID := range channelIDs {
+				_, err := m.streams.CloseStream(ctx, channelID)
 				if err != nil {
 					log.Warn(err)
 					return err
 				}
+
 			}
 		}
 
@@ -230,6 +232,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		log.Warn(err)
 		return err
 	}
+	log.Debugf("Report period: %d", reportPeriod)
 	eventTriggerData, err := subutils.CreateEventTriggerData(uint32(reportPeriod))
 	if err != nil {
 		log.Warn(err)
@@ -242,7 +245,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		return err
 	}
 
-	log.Debug("Report styles:", reportStyles)
+	log.Debugf("Report styles:%v", reportStyles)
 	// TODO we should check if for each report style a subscription should be created or for all of them
 	for _, reportStyle := range reportStyles {
 		actions, err := m.createSubscriptionActions(ctx, reportStyle, cells, uint32(granularityPeriod))
@@ -254,26 +257,29 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 
 		ch := make(chan e2api.Indication)
 		node := m.e2client.Node(e2client.NodeID(e2nodeID))
-		subRequest := e2api.Subscription{
-			ID:      e2api.SubscriptionID(fmt.Sprintf("%s-%s", "onos-kpimon-subscription", e2nodeID)),
+		subName := fmt.Sprintf("%s", "onos-kpimon-subscription")
+
+		subSpec := e2api.SubscriptionSpec{
 			Actions: actions,
 			EventTrigger: e2api.EventTrigger{
 				Payload: eventTriggerData,
 			},
 		}
-		err = node.Subscribe(ctx, &subRequest, ch)
+
+		channelID, err := node.Subscribe(ctx, subName, subSpec, ch)
 		if err != nil {
 			return err
 		}
 
-		stream, err := m.streams.OpenReader(node, subRequest)
+		log.Debugf("Channel ID:%s", channelID)
+		stream, err := m.streams.OpenReader(ctx, node, subName, channelID, subSpec)
 		if err != nil {
 			return err
 		}
 
 		go m.sendIndicationOnStream(stream.StreamID(), ch)
 		go func() {
-			err = m.monitor.Start(ctx, node, subRequest, measurements, e2nodeID)
+			err = m.monitor.Start(ctx, node, subName, channelID, subSpec, measurements, e2nodeID)
 			if err != nil {
 				log.Warn(err)
 			}
