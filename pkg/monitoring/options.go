@@ -29,6 +29,7 @@ type AppOptions struct {
 	MeasurementStore measurmentStore.Store
 }
 
+// MonitorOptions monitoring options
 type MonitorOptions struct {
 	Node         e2client.Node
 	Measurements []*topoapi.KPMMeasurement
