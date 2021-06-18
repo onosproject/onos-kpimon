@@ -319,6 +319,7 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 
 	// creates a new subscription whenever there is a new E2 node connected and supports KPM service model
 	for topoEvent := range ch {
+		log.Debugf("Received topo event: %v", topoEvent)
 		if topoEvent.Type == topoapi.EventType_ADDED || topoEvent.Type == topoapi.EventType_NONE {
 			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
 			e2NodeID := relation.Relation.TgtEntityID
