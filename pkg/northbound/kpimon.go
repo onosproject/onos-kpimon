@@ -7,6 +7,7 @@ package northbound
 import (
 	"context"
 	"fmt"
+
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 
 	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
@@ -44,10 +45,11 @@ type Server struct {
 
 // ListMeasurements get a snapshot of measurements
 func (s *Server) ListMeasurements(ctx context.Context, request *kpimonapi.GetRequest) (*kpimonapi.GetResponse, error) {
-	ch := make(chan measurementStore.Entry)
-	measurements := make(map[string]*kpimonapi.MeasurementItems)
+	ch := make(chan *measurementStore.Entry)
+	done := make(chan bool)
 
-	go func(measurements map[string]*kpimonapi.MeasurementItems, ch chan measurementStore.Entry) {
+	measurements := make(map[string]*kpimonapi.MeasurementItems)
+	go func(measurements map[string]*kpimonapi.MeasurementItems, ch chan *measurementStore.Entry, done chan bool) {
 		for entry := range ch {
 			measItems := utils.ParseEntry(entry)
 			cellID := entry.Key.CellIdentity.CellID
@@ -55,7 +57,8 @@ func (s *Server) ListMeasurements(ctx context.Context, request *kpimonapi.GetReq
 			keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
 			measurements[keyID] = measItems
 		}
-	}(measurements, ch)
+		done <- true
+	}(measurements, ch, done)
 
 	err := s.measurementStore.Entries(ctx, ch)
 	close(ch)
@@ -64,6 +67,7 @@ func (s *Server) ListMeasurements(ctx context.Context, request *kpimonapi.GetReq
 		return nil, err
 	}
 
+	<-done
 	response := &kpimonapi.GetResponse{
 		Measurements: measurements,
 	}
@@ -87,7 +91,7 @@ func (s *Server) WatchMeasurements(request *kpimonapi.GetRequest, server kpimona
 		nodeID := measEntry.Key.NodeID
 		keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
 
-		measItems := utils.ParseEntry(*measEntry)
+		measItems := utils.ParseEntry(measEntry)
 		measurements[keyID] = measItems
 
 		err := server.Send(&kpimonapi.GetResponse{

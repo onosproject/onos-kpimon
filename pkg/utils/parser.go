@@ -14,7 +14,7 @@ import (
 var log = logging.GetLogger("utils", "parser")
 
 // ParseEntry parses measurement store entry
-func ParseEntry(entry measurementStore.Entry) *kpimonapi.MeasurementItems {
+func ParseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
 	var err error
 
 	measEntryItems := entry.Value.([]measurementStore.MeasurementItem)
