@@ -12,7 +12,6 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
-	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
 
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
 
@@ -29,22 +28,31 @@ import (
 var log = logging.GetLogger("monitoring")
 
 // NewMonitor creates a new indication monitor
-func NewMonitor(streams broker.Broker, appConfig *appConfig.AppConfig,
-	measurementStore measurmentStore.Store, actionsStore actions.Store) *Monitor {
+func NewMonitor(opts ...Option) *Monitor {
+	options := Options{}
+
+	for _, opt := range opts {
+		opt.apply(&options)
+	}
+
 	return &Monitor{
-		streams:          streams,
-		appConfig:        appConfig,
-		measurementStore: measurementStore,
-		actionStore:      actionsStore,
+		appConfig:        options.App.AppConfig,
+		measurementStore: options.App.MeasurementStore,
+		actionStore:      options.App.ActionStore,
+		streamReader:     options.Monitor.StreamReader,
+		nodeID:           options.Monitor.NodeID,
+		measurements:     options.Monitor.Measurements,
 	}
 }
 
 // Monitor indication monitor
 type Monitor struct {
-	streams          broker.Broker
+	streamReader     broker.StreamReader
 	measurementStore measurmentStore.Store
 	actionStore      actions.Store
 	appConfig        *appConfig.AppConfig
+	measurements     []*topoapi.KPMMeasurement
+	nodeID           topoapi.ID
 }
 
 func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api.Indication,
@@ -170,21 +178,25 @@ func (m *Monitor) processIndication(ctx context.Context, indication e2api.Indica
 }
 
 // Start start monitoring of indication messages for a given subscription ID
-func (m *Monitor) Start(ctx context.Context, node e2client.Node, e2sub e2api.Subscription,
-	measurements []*topoapi.KPMMeasurement, nodeID topoapi.ID) error {
-	streamReader, err := m.streams.OpenReader(node, e2sub)
-	if err != nil {
-		return err
-	}
+func (m *Monitor) Start(ctx context.Context) error {
+	errCh := make(chan error)
+	go func() {
+		for {
+			indMsg, err := m.streamReader.Recv(ctx)
+			if err != nil {
+				errCh <- err
+			}
+			err = m.processIndication(ctx, indMsg, m.measurements, m.nodeID)
+			if err != nil {
+				errCh <- err
+			}
+		}
+	}()
 
-	for {
-		indMsg, err := streamReader.Recv(ctx)
-		if err != nil {
-			return err
-		}
-		err = m.processIndication(ctx, indMsg, measurements, nodeID)
-		if err != nil {
-			return err
-		}
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }

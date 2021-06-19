@@ -9,6 +9,7 @@ import (
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
+	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
 )
 
 // Options E2 client options
@@ -32,7 +33,9 @@ type AppOptions struct {
 
 	Monitor *monitoring.Monitor
 
-	Actions actions.Store
+	ActionStore actions.Store
+
+	MeasurementStore measurements.Store
 }
 
 // E2TServiceOptions are the options for a E2T service
@@ -160,16 +163,16 @@ func WithBroker(broker broker.Broker) Option {
 	})
 }
 
-// WithMonitor sets monitoring interface
-func WithMonitor(monitor *monitoring.Monitor) Option {
+// WithActionStore sets actions store
+func WithActionStore(actionStore actions.Store) Option {
 	return newOption(func(options *Options) {
-		options.App.Monitor = monitor
+		options.App.ActionStore = actionStore
 	})
 }
 
-// WithActions sets actions store
-func WithActions(actions actions.Store) Option {
+// WithMeasurementStore sets measurement store
+func WithMeasurementStore(measurementStore measurements.Store) Option {
 	return newOption(func(options *Options) {
-		options.App.Actions = actions
+		options.App.MeasurementStore = measurementStore
 	})
 }

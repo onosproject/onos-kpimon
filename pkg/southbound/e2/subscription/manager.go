@@ -6,9 +6,12 @@ package subscription
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
+
+	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
+
+	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
@@ -18,8 +21,6 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 
 	"github.com/onosproject/onos-ric-sdk-go/pkg/config/event"
-
-	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 
@@ -64,13 +65,13 @@ type SubManager interface {
 
 // Manager subscription manager
 type Manager struct {
-	e2client     e2client.Client
-	rnibClient   rnib.Client
-	serviceModel ServiceModelOptions
-	appConfig    *appConfig.AppConfig
-	streams      broker.Broker
-	monitor      *monitoring.Monitor
-	actionStore  actions.Store
+	e2client         e2client.Client
+	rnibClient       rnib.Client
+	serviceModel     ServiceModelOptions
+	appConfig        *appConfig.AppConfig
+	streams          broker.Broker
+	actionStore      actions.Store
+	measurementStore measurements.Store
 }
 
 // NewManager creates a new subscription manager
@@ -101,10 +102,10 @@ func NewManager(opts ...Option) (Manager, error) {
 			Name:    options.ServiceModel.Name,
 			Version: options.ServiceModel.Version,
 		},
-		appConfig:   options.App.AppConfig,
-		streams:     options.App.Broker,
-		monitor:     options.App.Monitor,
-		actionStore: options.App.Actions,
+		appConfig:        options.App.AppConfig,
+		streams:          options.App.Broker,
+		actionStore:      options.App.ActionStore,
+		measurementStore: options.App.MeasurementStore,
 	}, nil
 
 }
@@ -140,14 +141,16 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 
 	// Deletes all of subscriptions
 	for configEvent := range ch {
+		log.Debugf("Config event is received: %v", configEvent)
 		if configEvent.Key == utils.ReportPeriodConfigPath {
-			subIDs := m.streams.SubIDs()
-			for _, subID := range subIDs {
-				_, err := m.streams.CloseStream(subID)
+			channelIDs := m.streams.ChannelIDs()
+			for _, channelID := range channelIDs {
+				_, err := m.streams.CloseStream(ctx, channelID)
 				if err != nil {
 					log.Warn(err)
 					return err
 				}
+
 			}
 		}
 
@@ -230,6 +233,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		log.Warn(err)
 		return err
 	}
+	log.Debugf("Report period: %d", reportPeriod)
 	eventTriggerData, err := subutils.CreateEventTriggerData(uint32(reportPeriod))
 	if err != nil {
 		log.Warn(err)
@@ -242,7 +246,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		return err
 	}
 
-	log.Debug("Report styles:", reportStyles)
+	log.Debugf("Report styles:%v", reportStyles)
 	// TODO we should check if for each report style a subscription should be created or for all of them
 	for _, reportStyle := range reportStyles {
 		actions, err := m.createSubscriptionActions(ctx, reportStyle, cells, uint32(granularityPeriod))
@@ -254,31 +258,39 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 
 		ch := make(chan e2api.Indication)
 		node := m.e2client.Node(e2client.NodeID(e2nodeID))
-		subRequest := e2api.Subscription{
-			ID:      e2api.SubscriptionID(fmt.Sprintf("%s-%s", "onos-kpimon-subscription", e2nodeID)),
+		subName := "onos-kpimon-subscription"
+
+		subSpec := e2api.SubscriptionSpec{
 			Actions: actions,
 			EventTrigger: e2api.EventTrigger{
 				Payload: eventTriggerData,
 			},
 		}
-		err = node.Subscribe(ctx, &subRequest, ch)
+
+		channelID, err := node.Subscribe(ctx, subName, subSpec, ch)
 		if err != nil {
 			return err
 		}
 
-		stream, err := m.streams.OpenReader(node, subRequest)
+		log.Debugf("Channel ID:%s", channelID)
+		streamReader, err := m.streams.OpenReader(ctx, node, subName, channelID, subSpec)
 		if err != nil {
 			return err
 		}
 
-		go m.sendIndicationOnStream(stream.StreamID(), ch)
-		go func() {
-			err = m.monitor.Start(ctx, node, subRequest, measurements, e2nodeID)
-			if err != nil {
-				log.Warn(err)
-			}
+		go m.sendIndicationOnStream(streamReader.StreamID(), ch)
+		monitor := monitoring.NewMonitor(monitoring.WithAppConfig(m.appConfig),
+			monitoring.WithActionStore(m.actionStore),
+			monitoring.WithMeasurements(measurements),
+			monitoring.WithNode(node),
+			monitoring.WithStreamReader(streamReader),
+			monitoring.WithNodeID(e2nodeID),
+			monitoring.WithMeasurementStore(m.measurementStore))
+		err = monitor.Start(ctx)
+		if err != nil {
+			log.Warn(err)
+		}
 
-		}()
 	}
 
 	return nil
@@ -313,6 +325,7 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 
 	// creates a new subscription whenever there is a new E2 node connected and supports KPM service model
 	for topoEvent := range ch {
+		log.Debugf("Received topo event: %v", topoEvent)
 		if topoEvent.Type == topoapi.EventType_ADDED || topoEvent.Type == topoapi.EventType_NONE {
 			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
 			e2NodeID := relation.Relation.TgtEntityID
