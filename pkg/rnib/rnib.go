@@ -7,6 +7,8 @@ package rnib
 import (
 	"context"
 
+	"github.com/onosproject/onos-lib-go/pkg/errors"
+
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	toposdk "github.com/onosproject/onos-ric-sdk-go/pkg/topo"
 )
@@ -86,6 +88,11 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 			cells = append(cells, cellObject)
 		}
 	}
+
+	if len(cells) == 0 {
+		return nil, errors.New(errors.NotFound, "there is no cell to subscribe for e2 node %s", nodeID)
+	}
+
 	return cells, nil
 }
 
