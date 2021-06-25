@@ -6,7 +6,6 @@ package monitoring
 
 import (
 	"context"
-	"strconv"
 
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
@@ -133,10 +132,11 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 					MeasurementValue: measValue,
 				}
 				measRecords = append(measRecords, measRecord)
-			} else if measInfoList[j].GetMeasType().GetMeasId().GetValue() != 0 {
-				measID := measInfoList[j].GetMeasType().GetMeasId().GetValue()
-				measIDString := strconv.Itoa(int(measID))
-				measName := getMeasurementName(measIDString, measurements)
+			} else if measInfoList[j].GetMeasType().GetMeasId() != nil {
+				measID := measInfoList[j].GetMeasType().GetMeasId().String()
+				log.Debugf("Received meas ID in indication message:", measID)
+				log.Debugf("List of measurements:", measurements)
+				measName := getMeasurementName(measID, measurements)
 				measRecord := measurmentStore.MeasurementRecord{
 					Timestamp:        timeStamp,
 					MeasurementName:  measName,
