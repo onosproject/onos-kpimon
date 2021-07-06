@@ -29,8 +29,8 @@ type Config interface {
 }
 
 // NewConfig initialize the xApp config
-func NewConfig() (*AppConfig, error) {
-	appConfig, err := configurable.RegisterConfigurable(defaultConfigPath, &configurable.RegisterRequest{})
+func NewConfig(configPath string) (*AppConfig, error) {
+	appConfig, err := configurable.RegisterConfigurable(configPath, &configurable.RegisterRequest{})
 	if err != nil {
 		return nil, err
 	}
