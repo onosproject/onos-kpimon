@@ -55,14 +55,21 @@ func CreateSdranRelease(c *input.Context) (*helm.HelmRelease, error) {
 	return sdran, nil
 }
 
-func WaitForKPMIndicationMessages(t *testing.T, mgr *manager.Manager) error {
+// WaitForKPMIndicationMessages is the function to wait until all KPM indication messages arrives successfully
+func WaitForKPMIndicationMessages(ctx context.Context, t *testing.T, mgr *manager.Manager) error {
 	store := mgr.GetMeasurementStore()
 
 	for {
-		time.Sleep(1 * time.Second)
-
-		if verifyMonResults(t, store) {
-			return nil
+		select {
+		case <-ctx.Done():
+			if verifyMonResults(t, store) {
+				return nil
+			}
+			return fmt.Errorf("%s", "Test failed - the number of cells, e2nodes, or UEs is not matched")
+		case <-time.After(TestInterval):
+			if verifyMonResults(t, store) {
+				return nil
+			}
 		}
 	}
 }
@@ -100,12 +107,12 @@ func verifyMonResults(t *testing.T, store measurements.Store) bool {
 	}
 
 	if numCells != TotalNumCells {
-		t.Logf("the number of cells should be %d, but currently it is %d", TotalNumCells, numCells)
+		t.Logf("Waiting until the number of cells becomes %d; currently it is %d", TotalNumCells, numCells)
 		verify = false
 	}
 
 	if numE2Nodes != TotalNumE2Nodes {
-		t.Logf("the number of e2 nodes should be %d, but currently it is %d", TotalNumE2Nodes, numE2Nodes)
+		t.Logf("Waiting until the number of e2 nodes becomes %d; currently it is %d", TotalNumE2Nodes, numE2Nodes)
 		verify = false
 	}
 
@@ -115,7 +122,7 @@ func verifyMonResults(t *testing.T, store measurements.Store) bool {
 	}
 
 	if numUEs != TotalNumUEs {
-		t.Logf("the number of UEs should be %d, but currently it is %d", TotalNumUEs, numUEs)
+		t.Logf("Waiting until the number of UEs becomes %d; currently it is %d", TotalNumUEs, numUEs)
 		verify = false
 	}
 

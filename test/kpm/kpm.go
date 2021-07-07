@@ -5,6 +5,7 @@
 package kpm
 
 import (
+	"context"
 	"github.com/onosproject/onos-kpimon/pkg/manager"
 	"github.com/onosproject/onos-kpimon/test/utils"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
@@ -12,6 +13,7 @@ import (
 	"testing"
 )
 
+// TestKpmSm is the function for Helmit-based integration test
 func (s *TestSuite) TestKpmSm(t *testing.T) {
 	cfg := manager.Config{
 		CAPath:      "/tmp/tls.cacrt",
@@ -31,6 +33,9 @@ func (s *TestSuite) TestKpmSm(t *testing.T) {
 	mgr := manager.NewManager(cfg)
 	mgr.Run()
 
-	err = utils.WaitForKPMIndicationMessages(t, mgr)
+	ctx, cancel := context.WithTimeout(context.Background(), utils.TestTimeout)
+	defer cancel()
+
+	err = utils.WaitForKPMIndicationMessages(ctx, t, mgr)
 	assert.NoError(t, err)
 }
