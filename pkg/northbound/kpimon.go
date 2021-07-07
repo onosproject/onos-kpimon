@@ -61,7 +61,6 @@ func (s *Server) ListMeasurements(ctx context.Context, request *kpimonapi.GetReq
 	}(measurements, ch, done)
 
 	err := s.measurementStore.Entries(ctx, ch)
-	close(ch)
 
 	if err != nil {
 		return nil, err

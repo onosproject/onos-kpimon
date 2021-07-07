@@ -59,6 +59,7 @@ func (s *store) Entries(ctx context.Context, ch chan<- *Entry) error {
 	defer s.mu.Unlock()
 
 	if len(s.measurements) == 0 {
+		close(ch)
 		return fmt.Errorf("no measurements entries stored")
 	}
 
@@ -66,6 +67,7 @@ func (s *store) Entries(ctx context.Context, ch chan<- *Entry) error {
 		ch <- entry
 	}
 
+	close(ch)
 	return nil
 }
 

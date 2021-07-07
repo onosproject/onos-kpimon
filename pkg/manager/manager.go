@@ -28,13 +28,14 @@ type Config struct {
 	E2tEndpoint string
 	GRPCPort    int
 	RicActionID int32
+	ConfigPath  string
 	SMName      string
 	SMVersion   string
 }
 
 // NewManager generates the new KPIMON xAPP manager
 func NewManager(config Config) *Manager {
-	appCfg, err := appConfig.NewConfig()
+	appCfg, err := appConfig.NewConfig(config.ConfigPath)
 	if err != nil {
 		log.Warn(err)
 	}
@@ -131,4 +132,9 @@ func (m *Manager) startUENIBUpdater() {
 	ctx := context.Background()
 	s := uenib.NewUENIBClient(ctx, m.config.CertPath, m.config.KeyPath, m.measurementStore)
 	s.Run(ctx)
+}
+
+// GetMeasurementStore returns measurement store
+func (m *Manager) GetMeasurementStore() measurements.Store {
+	return m.measurementStore
 }
