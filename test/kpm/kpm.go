@@ -38,4 +38,6 @@ func (s *TestSuite) TestKpmSm(t *testing.T) {
 
 	err = utils.WaitForKPMIndicationMessages(ctx, t, mgr)
 	assert.NoError(t, err)
+
+	t.Log("KPM suite test passed")
 }
