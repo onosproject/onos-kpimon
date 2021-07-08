@@ -37,7 +37,7 @@ func (m *Manager) createSubscriptionActions(ctx context.Context, reportStyle *to
 			}
 			measInfoList.Value = append(measInfoList.Value, meanInfoItem)
 		}
-		subID := int64(index + 1)
+		subID := int64(index)
 		actionDefinition, err := pdubuilder.CreateActionDefinitionFormat1(cell.GetCellObjectID(), measInfoList, granularity, subID)
 		if err != nil {
 			return nil, err
