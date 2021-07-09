@@ -7,6 +7,8 @@ package northbound
 import (
 	"context"
 	"fmt"
+	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	"github.com/onosproject/onos-kpimon/pkg/rnib"
 
 	"github.com/onosproject/onos-kpimon/pkg/utils"
 
@@ -54,7 +56,7 @@ func (s *Server) ListMeasurements(ctx context.Context, request *kpimonapi.GetReq
 			measItems := utils.ParseEntry(entry)
 			cellID := entry.Key.CellIdentity.CellID
 			nodeID := entry.Key.NodeID
-			keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
+			keyID := fmt.Sprintf("%s:%s:%s", nodeID, cellID, s.getCellGlobalID(ctx, nodeID, cellID))
 			measurements[keyID] = measItems
 		}
 		done <- true
@@ -88,7 +90,7 @@ func (s *Server) WatchMeasurements(request *kpimonapi.GetRequest, server kpimona
 		// key := e.Key.(measurementStore.Key)
 		cellID := measEntry.Key.CellIdentity.CellID
 		nodeID := measEntry.Key.NodeID
-		keyID := fmt.Sprintf("%s:%s", nodeID, cellID)
+		keyID := fmt.Sprintf("%s:%s:%s", nodeID, cellID, s.getCellGlobalID(context.Background(), nodeID, cellID))
 
 		measItems := utils.ParseEntry(measEntry)
 		measurements[keyID] = measItems
@@ -101,4 +103,23 @@ func (s *Server) WatchMeasurements(request *kpimonapi.GetRequest, server kpimona
 		}
 	}
 	return nil
+}
+
+func (s *Server) getCellGlobalID(ctx context.Context, nodeID string, cellObjID string) string {
+	rnibClient, err := rnib.NewClient()
+	if err != nil {
+		return ""
+	}
+
+	cells, err := rnibClient.GetCells(ctx, topoapi.ID(nodeID))
+	if err != nil {
+		return ""
+	}
+
+	for _, cell := range cells {
+		if cell.GetCellObjectID() == cellObjID {
+			return cell.CellGlobalID.GetValue()
+		}
+	}
+	return ""
 }
