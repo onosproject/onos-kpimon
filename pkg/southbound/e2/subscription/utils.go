@@ -6,6 +6,7 @@ package subscription
 
 import (
 	"context"
+	"sort"
 
 	actionsstore "github.com/onosproject/onos-kpimon/pkg/store/actions"
 
@@ -19,6 +20,10 @@ import (
 // createSubscriptionActions creates subscription actions
 func (m *Manager) createSubscriptionActions(ctx context.Context, reportStyle *topoapi.KPMReportStyle, cells []*topoapi.E2Cell, granularity uint32) ([]e2api.Action, error) {
 	actions := make([]e2api.Action, 0)
+
+	sort.Slice(cells, func(i, j int) bool {
+		return cells[i].CellObjectID < cells[j].CellObjectID
+	})
 
 	for index, cell := range cells {
 		measInfoList := &e2smkpmv2.MeasurementInfoList{
