@@ -6,6 +6,7 @@ package monitoring
 
 import (
 	"context"
+	"github.com/onosproject/onos-kpimon/pkg/utils"
 
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
@@ -153,9 +154,7 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 
 	}
 
-	cellID := measurmentStore.CellIdentity{
-		CellID: cid,
-	}
+	cellID := utils.ToHexCellObjectID(cid)
 
 	measurementKey := measurmentStore.NewKey(cellID, string(nodeID))
 	_, err = m.measurementStore.Put(ctx, measurementKey, measItems)

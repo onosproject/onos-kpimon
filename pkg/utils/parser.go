@@ -5,10 +5,12 @@
 package utils
 
 import (
+	"fmt"
 	prototypes "github.com/gogo/protobuf/types"
 	kpimonapi "github.com/onosproject/onos-api/go/onos/kpimon"
 	measurementStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"strconv"
 )
 
 var log = logging.GetLogger("utils", "parser")
@@ -64,4 +66,20 @@ func ParseEntry(entry *measurementStore.Entry) *kpimonapi.MeasurementItems {
 		measItems.MeasurementItems = append(measItems.MeasurementItems, measItem)
 	}
 	return measItems
+}
+
+// ToHexCellObjectID converts dec ID to hex if necessary
+func ToHexCellObjectID(cid string) measurementStore.CellIdentity {
+	// if number? - convert it to hex
+	cidDec, err := strconv.ParseInt(cid, 10, 64)
+	if err == nil {
+		return measurementStore.CellIdentity{
+			CellID: fmt.Sprintf("%x", cidDec),
+		}
+	}
+
+	// if string or hex? - just return same string
+	return measurementStore.CellIdentity{
+		CellID: cid,
+	}
 }
