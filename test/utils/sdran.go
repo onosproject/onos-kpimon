@@ -13,6 +13,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/manager"
 	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-test/pkg/onostest"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
@@ -127,4 +128,32 @@ func verifyMonResults(t *testing.T, store measurements.Store) bool {
 	}
 
 	return verify
+}
+
+// CreateRanSimulatorWithNameOrDie creates a simulator and fails the test if the creation returned an error
+func CreateRanSimulatorWithNameOrDie(t *testing.T, c *input.Context, simName string) *helm.HelmRelease {
+	sim := CreateRanSimulatorWithName(t, c, simName)
+	assert.NotNil(t, sim)
+	return sim
+}
+
+// CreateRanSimulatorWithName creates a ran simulator
+func CreateRanSimulatorWithName(t *testing.T, c *input.Context, name string) *helm.HelmRelease {
+	username, password, err := getCredentials()
+	assert.NoError(t, err)
+
+	registry := c.GetArg("registry").String("")
+
+	simulator := helm.
+		Chart("ran-simulator", onostest.SdranChartRepo).
+		Release(name).
+		SetUsername(username).
+		SetPassword(password).
+		Set("image.tag", "latest").
+		Set("fullnameOverride", "").
+		Set("global.image.registry", registry)
+	err = simulator.Install(true)
+	assert.NoError(t, err, "could not install device simulator %v", err)
+
+	return simulator
 }
