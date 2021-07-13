@@ -51,6 +51,7 @@ func CreateSdranRelease(c *input.Context) (*helm.HelmRelease, error) {
 		Set("import.ran-simulator.enabled", true).
 		Set("import.onos-pci.enabled", false).
 		Set("import.onos-kpimon.enabled", false).
+		Set("onos-uenib.image.tag", "latest").
 		Set("global.image.registry", registry)
 
 	return sdran, nil
