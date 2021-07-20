@@ -6,16 +6,13 @@ package subscription
 
 import (
 	"context"
-	"strings"
-	"time"
-
 	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
+	"strings"
 
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
-	"github.com/cenkalti/backoff/v4"
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 
 	"github.com/onosproject/onos-kpimon/pkg/utils"
@@ -41,21 +38,6 @@ var log = logging.GetLogger("e2", "subscription", "manager")
 const (
 	kpmServiceModelOID = "1.3.6.1.4.1.53148.1.2.2.2"
 )
-
-const (
-	backoffInterval = 10 * time.Millisecond
-	maxBackoffTime  = 5 * time.Second
-)
-
-func newExpBackoff() *backoff.ExponentialBackOff {
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = backoffInterval
-	// MaxInterval caps the RetryInterval
-	b.MaxInterval = maxBackoffTime
-	// Never stops retrying
-	b.MaxElapsedTime = 0
-	return b
-}
 
 // SubManager subscription manager interface
 type SubManager interface {
@@ -298,21 +280,8 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 }
 
 func (m *Manager) newSubscription(ctx context.Context, e2NodeID topoapi.ID) error {
-	// TODO revisit this after migrating to use new E2 sdk, it should be the responsibility of the SDK to retry on this call
-	count := 0
-	notifier := func(err error, t time.Duration) {
-		count++
-		log.Infof("Retrying, failed to create subscription for E2 node with ID %s due to %s", e2NodeID, err)
-	}
-
-	err := backoff.RetryNotify(func() error {
-		err := m.createSubscription(ctx, e2NodeID)
-		return err
-	}, newExpBackoff(), notifier)
-	if err != nil {
-		return err
-	}
-	return nil
+	err := m.createSubscription(ctx, e2NodeID)
+	return err
 }
 
 func (m *Manager) watchE2Connections(ctx context.Context) error {
