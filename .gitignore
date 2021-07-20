@@ -11,6 +11,7 @@ coverage.txt
 .cproject
 .eclipse
 .settings/
+vendor
 
 # Jenkins report files
 *report*.xml
