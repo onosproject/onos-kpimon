@@ -318,7 +318,10 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 						CellID: coi.CellObjectID,
 					},
 				}
-				m.measurementStore.Delete(ctx, key)
+				err = m.measurementStore.Delete(ctx, key)
+				if err != nil {
+					log.Warn(err)
+				}
 			}
 		}
 
