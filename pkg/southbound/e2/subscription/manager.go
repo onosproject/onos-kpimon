@@ -304,6 +304,25 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 					log.Warn(err)
 				}
 			}()
+		} else if topoEvent.Type == topoapi.EventType_REMOVED {
+			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
+			e2NodeID := relation.Relation.TgtEntityID
+			cellIDs, err := m.rnibClient.GetCells(ctx, e2NodeID)
+			if err != nil {
+				return err
+			}
+			for _, coi := range cellIDs {
+				key := measurements.Key{
+					NodeID: string(e2NodeID),
+					CellIdentity: measurements.CellIdentity{
+						CellID: coi.CellObjectID,
+					},
+				}
+				err = m.measurementStore.Delete(ctx, key)
+				if err != nil {
+					log.Warn(err)
+				}
+			}
 		}
 
 	}
