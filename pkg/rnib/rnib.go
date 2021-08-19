@@ -83,7 +83,10 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 		targetEntity := obj.GetEntity()
 		if targetEntity.GetKindID() == topoapi.E2CELL {
 			cellObject := &topoapi.E2Cell{}
-			_ = obj.GetAspect(cellObject)
+			err = obj.GetAspect(cellObject)
+			if err != nil {
+				return nil, err
+			}
 			cells = append(cells, cellObject)
 		}
 	}
