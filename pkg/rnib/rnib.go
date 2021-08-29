@@ -56,9 +56,7 @@ func (c *Client) UpdateCellAspects(ctx context.Context, cellID topoapi.ID, measI
 
 		tmpTs := uint64(0)
 		for _, measItem := range measItems {
-			fmt.Printf("item: %v\n", measItem)
 			for _, record := range measItem.MeasurementRecords {
-				fmt.Printf("record: %v\n", record)
 				if tmpTs <= record.Timestamp {
 					tmpTs = record.Timestamp
 					switch record.MeasurementValue.(type) {
