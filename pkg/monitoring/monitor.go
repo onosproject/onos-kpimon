@@ -6,6 +6,7 @@ package monitoring
 
 import (
 	"context"
+	"github.com/onosproject/onos-kpimon/pkg/rnib"
 
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
@@ -41,6 +42,7 @@ func NewMonitor(opts ...Option) *Monitor {
 		streamReader:     options.Monitor.StreamReader,
 		nodeID:           options.Monitor.NodeID,
 		measurements:     options.Monitor.Measurements,
+		rnibClient:       options.App.RNIBClient,
 	}
 }
 
@@ -52,6 +54,7 @@ type Monitor struct {
 	appConfig        *appConfig.AppConfig
 	measurements     []*topoapi.KPMMeasurement
 	nodeID           topoapi.ID
+	rnibClient       rnib.Client
 }
 
 func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api.Indication,
@@ -163,6 +166,16 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		log.Warn(err)
 		return err
 	}
+
+	cellTopoID, err := m.rnibClient.GetCellTopoID(ctx, cellID.CellID, nodeID)
+	if err != nil {
+		return err
+	}
+	err = m.rnibClient.UpdateCellAspects(ctx, cellTopoID, measItems)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 	appConfig "github.com/onosproject/onos-kpimon/pkg/config"
+	"github.com/onosproject/onos-kpimon/pkg/rnib"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 	measurmentStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
@@ -27,6 +28,8 @@ type AppOptions struct {
 	ActionStore actions.Store
 
 	MeasurementStore measurmentStore.Store
+
+	RNIBClient rnib.Client
 }
 
 // MonitorOptions monitoring options
@@ -102,5 +105,12 @@ func WithAppConfig(appConfig *appConfig.AppConfig) Option {
 func WithActionStore(actionStore actions.Store) Option {
 	return newOption(func(options *Options) {
 		options.App.ActionStore = actionStore
+	})
+}
+
+// WithRNIBClient sets RNIB client
+func WithRNIBClient(rnibClient rnib.Client) Option {
+	return newOption(func(options *Options) {
+		options.App.RNIBClient = rnibClient
 	})
 }
