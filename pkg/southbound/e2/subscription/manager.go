@@ -267,7 +267,8 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 			monitoring.WithNode(node),
 			monitoring.WithStreamReader(streamReader),
 			monitoring.WithNodeID(e2nodeID),
-			monitoring.WithMeasurementStore(m.measurementStore))
+			monitoring.WithMeasurementStore(m.measurementStore),
+			monitoring.WithRNIBClient(m.rnibClient))
 		err = monitor.Start(ctx)
 		if err != nil {
 			log.Warn(err)

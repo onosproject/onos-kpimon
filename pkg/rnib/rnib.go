@@ -6,7 +6,8 @@ package rnib
 
 import (
 	"context"
-
+	"fmt"
+	measurmentStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
@@ -36,6 +37,67 @@ func NewClient() (Client, error) {
 // Client topo SDK client
 type Client struct {
 	client toposdk.Client
+}
+
+func (c *Client) UpdateCellAspects(ctx context.Context, cellID topoapi.ID, measItems []measurmentStore.MeasurementItem) error {
+	object, err := c.client.Get(ctx, cellID)
+	if err != nil {
+		return err
+	}
+
+	if object != nil && object.GetEntity().GetKindID() == topoapi.E2CELL {
+		cellObject := &topoapi.E2Cell{}
+		err := object.GetAspect(cellObject)
+		if err != nil {
+			return err
+		}
+		cellObject.KpiReports = make(map[string]uint32)
+
+		tmpTs := uint64(0)
+		for _, measItem := range measItems {
+			fmt.Printf("item: %v\n", measItem)
+			for _, record := range measItem.MeasurementRecords {
+				fmt.Printf("record: %v\n", record)
+				if tmpTs <= record.Timestamp {
+					tmpTs = record.Timestamp
+					switch record.MeasurementValue.(type) {
+					case int32:
+						cellObject.KpiReports[record.MeasurementName] = uint32(record.MeasurementValue.(int32))
+
+					case int64:
+						cellObject.KpiReports[record.MeasurementName] = uint32(record.MeasurementValue.(int64))
+
+					default:
+						cellObject.KpiReports[record.MeasurementName] = uint32(0)
+					}
+				}
+			}
+		}
+
+		err = object.SetAspect(cellObject)
+		if err != nil {
+			return err
+		}
+		err = c.client.Update(ctx, object)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Client) GetCellTopoID(ctx context.Context, coi string, nodeID topoapi.ID) (topoapi.ID, error) {
+	cells, err := c.GetCells(ctx, nodeID)
+	if err != nil {
+		return "", err
+	}
+
+	for _, cell := range cells {
+		if coi == cell.CellObjectID {
+			return topoapi.ID(fmt.Sprintf("%s/%s", string(nodeID), cell.CellGlobalID.Value)), nil
+		}
+	}
+	return "", errors.NewNotFound("E2Cell not found with CellObjectID")
 }
 
 // E2NodeIDs lists all of connected E2 nodes
