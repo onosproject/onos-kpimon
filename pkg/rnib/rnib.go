@@ -39,6 +39,7 @@ type Client struct {
 	client toposdk.Client
 }
 
+// UpdateCellAspects updates cell aspects
 func (c *Client) UpdateCellAspects(ctx context.Context, cellID topoapi.ID, measItems []measurmentStore.MeasurementItem) error {
 	object, err := c.client.Get(ctx, cellID)
 	if err != nil {
@@ -86,6 +87,7 @@ func (c *Client) UpdateCellAspects(ctx context.Context, cellID topoapi.ID, measI
 	return nil
 }
 
+// GetCellTopoID gets cell topo ID with cell object ID
 func (c *Client) GetCellTopoID(ctx context.Context, coi string, nodeID topoapi.ID) (topoapi.ID, error) {
 	cells, err := c.GetCells(ctx, nodeID)
 	if err != nil {

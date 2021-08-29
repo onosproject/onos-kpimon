@@ -54,7 +54,7 @@ type Monitor struct {
 	appConfig        *appConfig.AppConfig
 	measurements     []*topoapi.KPMMeasurement
 	nodeID           topoapi.ID
-	rnibClient		 rnib.Client
+	rnibClient       rnib.Client
 }
 
 func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api.Indication,
