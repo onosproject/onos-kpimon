@@ -6,15 +6,16 @@ package ha
 
 import (
 	"context"
-	"github.com/onosproject/helmit/pkg/helm"
-	"github.com/onosproject/helmit/pkg/kubernetes"
-	"github.com/onosproject/helmit/pkg/kubernetes/core/v1"
-	"github.com/onosproject/onos-api/go/onos/kpimon"
-	"github.com/onosproject/onos-kpimon/test/utils"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/onosproject/helmit/pkg/helm"
+	"github.com/onosproject/helmit/pkg/kubernetes"
+	v1 "github.com/onosproject/helmit/pkg/kubernetes/core/v1"
+	"github.com/onosproject/onos-api/go/onos/kpimon"
+	"github.com/onosproject/onos-kpimon/test/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -38,6 +39,41 @@ func GetPodListOrFail(t *testing.T) []*v1.Pod {
 func CrashPodOrFail(t *testing.T, pod *v1.Pod) {
 	err := pod.Delete(context.Background())
 	assert.NoError(t, err)
+}
+
+// FindPodsWithPrefix looks for the list of pods whose name matches the given prefix string.
+func FindPodsWithPrefix(t *testing.T, prefix string) []*v1.Pod {
+	podListPrefix := []*v1.Pod{}
+
+	podList := GetPodListOrFail(t)
+	for _, p := range podList {
+		if strings.HasPrefix(p.Name, prefix) {
+			podListPrefix = append(podListPrefix, p)
+		}
+	}
+
+	return podListPrefix
+}
+
+// WaitSinglePodWithPrefix checks if there exists a single pod name that matches the given prefix string. The test is failed
+// if no matching pod is found or if there are two pods after timeout.
+func WaitSinglePodWithPrefix(t *testing.T, prefix string, timeout uint32) bool {
+	singlePodExists := false
+
+	ticker := time.NewTicker(3 * time.Second)
+	for {
+		select {
+		case <-time.After(time.Duration(timeout) * time.Second):
+			return singlePodExists
+		case <-ticker.C:
+			podList := FindPodsWithPrefix(t, prefix)
+
+			if len(podList) == 1 {
+				singlePodExists = true
+				return singlePodExists
+			}
+		}
+	}
 }
 
 // FindPodWithPrefix looks for the first pod whose name matches the given prefix string. The test is failed
@@ -89,6 +125,9 @@ func (s *TestSuite) TestKPIMonRestart(t *testing.T) {
 		// Crash onos-kpimon
 		e2tPod := FindPodWithPrefix(t, "onos-kpimon")
 		CrashPodOrFail(t, e2tPod)
+
+		singlePodExists := WaitSinglePodWithPrefix(t, "onos-kpimon", 15)
+		assert.True(t, singlePodExists)
 
 		resp = GetKPIMonMeasurementsOrFail(t)
 		assert.NotNil(t, resp)
