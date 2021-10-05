@@ -58,7 +58,7 @@ func FindPodsWithPrefix(t *testing.T, prefix string) []*v1.Pod {
 // WaitSinglePodWithPrefix checks if there exists a single pod name that matches the given prefix string. The test is failed
 // if no matching pod is found or if there are two pods after timeout.
 func WaitSinglePodWithPrefix(t *testing.T, prefix string, timeout uint32) bool {
-	var singlePodExists bool
+	singlePodExists := false
 
 	ticker := time.NewTicker(3 * time.Second)
 	for {
@@ -71,8 +71,6 @@ func WaitSinglePodWithPrefix(t *testing.T, prefix string, timeout uint32) bool {
 			if len(podList) == 1 {
 				singlePodExists = true
 				return singlePodExists
-			} else {
-				singlePodExists = false
 			}
 		}
 	}
