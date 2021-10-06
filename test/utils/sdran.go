@@ -90,7 +90,7 @@ func verifyMonResults(t *testing.T, store measurements.Store) bool {
 	for e := range ch {
 		mKey[e.Key.NodeID]++
 		for _, item := range e.Value.([]measurements.MeasurementItem) {
-			var avgNumUEs int64 = 0
+			var avgNumUEs int64
 			for _, record := range item.MeasurementRecords {
 				switch record.MeasurementName {
 				case AvgUEsMeasName:
@@ -101,8 +101,8 @@ func verifyMonResults(t *testing.T, store measurements.Store) bool {
 		}
 	}
 
-	var numCells int64 = 0
-	var numE2Nodes int64 = 0
+	var numCells int64
+	var numE2Nodes int64
 	for _, v := range mKey {
 		numE2Nodes++
 		numCells = numCells + v
@@ -118,7 +118,7 @@ func verifyMonResults(t *testing.T, store measurements.Store) bool {
 		verify = false
 	}
 
-	var numUEs int64 = 0
+	var numUEs int64
 	for _, v := range mValueAvg {
 		numUEs = numUEs + v
 	}
