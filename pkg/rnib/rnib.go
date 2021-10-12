@@ -9,10 +9,13 @@ import (
 	"fmt"
 	measurmentStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
+	"github.com/onosproject/onos-lib-go/pkg/logging"
 
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	toposdk "github.com/onosproject/onos-ric-sdk-go/pkg/topo"
 )
+
+var log = logging.GetLogger("rnib")
 
 // TopoClient R-NIB client interface
 type TopoClient interface {
@@ -37,6 +40,21 @@ func NewClient() (Client, error) {
 // Client topo SDK client
 type Client struct {
 	client toposdk.Client
+}
+
+func (c *Client) HasKPMRanFunction(ctx context.Context, nodeID topoapi.ID, oid string) bool {
+	e2Node, err := c.GetE2NodeAspects(ctx, nodeID)
+	if err != nil {
+		log.Warn(err)
+		return false
+	}
+
+	for _, sm := range e2Node.GetServiceModels() {
+		if sm.OID == oid {
+			return true
+		}
+	}
+	return false
 }
 
 // UpdateCellAspects updates cell aspects
