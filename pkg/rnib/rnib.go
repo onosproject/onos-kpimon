@@ -151,7 +151,7 @@ func (c *Client) GetE2NodeAspects(ctx context.Context, nodeID topoapi.ID) (*topo
 func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error) {
 	filter := &topoapi.Filters{
 		RelationFilter: &topoapi.RelationFilter{
-			SrcId: string(nodeID),
+			SrcId:        string(nodeID),
 			RelationKind: topoapi.CONTAINS,
 			TargetKind:   topoapi.E2CELL,
 		},
