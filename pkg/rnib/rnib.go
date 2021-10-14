@@ -150,9 +150,12 @@ func (c *Client) GetE2NodeAspects(ctx context.Context, nodeID topoapi.ID) (*topo
 // GetCells get list of cells for each E2 node
 func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error) {
 	filter := &topoapi.Filters{
-		RelationFilter: &topoapi.RelationFilter{SrcId: string(nodeID),
+		RelationFilter: &topoapi.RelationFilter{
+			SrcId:        string(nodeID),
 			RelationKind: topoapi.CONTAINS,
-			TargetKind:   ""}}
+			TargetKind:   topoapi.E2CELL,
+		},
+	}
 
 	objects, err := c.client.List(ctx, toposdk.WithListFilters(filter))
 	if err != nil {
@@ -160,15 +163,13 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 	}
 	var cells []*topoapi.E2Cell
 	for _, obj := range objects {
-		targetEntity := obj.GetEntity()
-		if targetEntity.GetKindID() == topoapi.E2CELL {
-			cellObject := &topoapi.E2Cell{}
-			err = obj.GetAspect(cellObject)
-			if err != nil {
-				return nil, err
-			}
-			cells = append(cells, cellObject)
+		cellObject := &topoapi.E2Cell{}
+		err = obj.GetAspect(cellObject)
+		if err != nil {
+			log.Warn("Cell entity %s has no E2Cell aspect", obj.ID)
+			return nil, err
 		}
+		cells = append(cells, cellObject)
 	}
 
 	if len(cells) == 0 {
