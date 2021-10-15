@@ -6,10 +6,10 @@ package subscription
 
 import (
 	"context"
+	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
 	"strings"
-
-	"github.com/onosproject/onos-kpimon/pkg/monitoring"
+	"time"
 
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 
@@ -295,6 +295,9 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 
 	// creates a new subscription whenever there is a new E2 node connected and supports KPM service model
 	for topoEvent := range ch {
+		// FIXME: This is a temporary work-around to hadicap onos-kpimon in its race with onos-topo
+		time.Sleep(250 * time.Millisecond)
+
 		log.Debugf("Received topo event: %v", topoEvent)
 
 		if topoEvent.Type == topoapi.EventType_ADDED || topoEvent.Type == topoapi.EventType_NONE {
