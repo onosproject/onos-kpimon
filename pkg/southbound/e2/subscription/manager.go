@@ -6,10 +6,13 @@ package subscription
 
 import (
 	"context"
+	"strings"
+
+	"github.com/cenkalti/backoff"
+
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
 	"github.com/onosproject/onos-kpimon/pkg/store/measurements"
-	"strings"
 
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 
@@ -207,6 +210,9 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		log.Warn(err)
 		return err
 	}
+	if len(cells) == 0 {
+		return errors.NewNotFound("list of cells are empty")
+	}
 
 	reportPeriod, err := m.appConfig.GetReportPeriod()
 	if err != nil {
@@ -301,11 +307,16 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 			if !m.rnibClient.HasKPMRanFunction(ctx, e2NodeID, kpmServiceModelOID) {
 				continue
 			}
+
 			go func() {
-				err := m.newSubscription(ctx, e2NodeID)
-				if err != nil {
-					log.Warn(err)
-				}
+				err = backoff.Retry(func() error {
+					err := m.newSubscription(ctx, e2NodeID)
+					if err != nil {
+						log.Warn(err)
+						return err
+					}
+					return nil
+				}, backoff.NewExponentialBackOff())
 			}()
 		} else if topoEvent.Type == topoapi.EventType_REMOVED {
 			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
