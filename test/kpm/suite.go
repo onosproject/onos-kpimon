@@ -9,6 +9,7 @@ import (
 	"github.com/onosproject/helmit/pkg/input"
 	"github.com/onosproject/helmit/pkg/test"
 	"github.com/onosproject/onos-kpimon/test/utils"
+	testutils "github.com/onosproject/onos-ric-sdk-go/pkg/utils"
 )
 
 // TestSuite has sdran release and test suite
@@ -44,10 +45,13 @@ func (s *TestSuite) SetupTestSuite(c *input.Context) error {
 	s.sdran = sdran
 	sdran.Set("ran-simulator.pci.metricName", "metric").
 		Set("ran-simulator.pci.modelName", "model")
-	return sdran.Install(true)
+	r := sdran.Install(true)
+	testutils.StartTestProxy()
+	return r
 }
 
 // TearDownTestSuite uninstalls helm chart released
 func (s *TestSuite) TearDownTestSuite() error {
+	testutils.StopTestProxy()
 	return s.sdran.Uninstall()
 }
