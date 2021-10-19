@@ -7,9 +7,6 @@ package subscription
 import (
 	"context"
 	"strings"
-	"time"
-
-	"github.com/cenkalti/backoff/v4"
 
 	"github.com/onosproject/onos-kpimon/pkg/monitoring"
 	"github.com/onosproject/onos-kpimon/pkg/store/actions"
@@ -211,9 +208,6 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		log.Warn(err)
 		return err
 	}
-	if len(cells) == 0 {
-		return errors.NewNotFound("list of cell entities is empty")
-	}
 
 	reportPeriod, err := m.appConfig.GetReportPeriod()
 	if err != nil {
@@ -298,7 +292,6 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 		return err
 	}
 
-	b := backoff.NewExponentialBackOff()
 	// creates a new subscription whenever there is a new E2 node connected and supports KPM service model
 	for topoEvent := range ch {
 		log.Debugf("Received topo event: %v", topoEvent)
@@ -309,20 +302,14 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 			if !m.rnibClient.HasKPMRanFunction(ctx, e2NodeID, kpmServiceModelOID) {
 				continue
 			}
-			subNotify := func(err error, t time.Duration) {
-				log.Infof("Creating Subscription for e2 node %s failed, retrying, elapsed time is %+v", e2NodeID, b.GetElapsedTime())
-			}
 
 			go func() {
-				err = backoff.RetryNotify(func() error {
-					err := m.newSubscription(ctx, e2NodeID)
-					if err != nil {
-						log.Warn(err)
-						return err
-					}
-					return nil
-				}, b, subNotify)
+				err := m.newSubscription(ctx, e2NodeID)
+				if err != nil {
+					log.Warn(err)
+				}
 			}()
+
 		} else if topoEvent.Type == topoapi.EventType_REMOVED {
 			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
 			e2NodeID := relation.Relation.TgtEntityID
