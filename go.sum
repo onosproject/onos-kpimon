@@ -773,8 +773,8 @@ github.com/onosproject/helmit v0.6.17 h1:Or/QVsay7P3O9wJKiJl4ezjZg9M82dNQ+58d7dC
 github.com/onosproject/helmit v0.6.17/go.mod h1:wdfAbTUnL2lBvr8PObslX5Hf3ZZnm1d5kBVy1hMJzYo=
 github.com/onosproject/onos-api/go v0.7.80/go.mod h1:dUChRuNCBGrF6sVdaAZl5T2ZeyEC6ybsAdEBu0YwlMw=
 github.com/onosproject/onos-api/go v0.7.95/go.mod h1:CaFf0659DTSP/8LAwuKv9p9/xFPcx7fmcxC/dlSi8qo=
-github.com/onosproject/onos-api/go v0.7.106 h1:/GQtBVeZ8s+L5oOt3+cXKMvT1TAJBnCTdG3V49pT9Sg=
-github.com/onosproject/onos-api/go v0.7.106/go.mod h1:CaFf0659DTSP/8LAwuKv9p9/xFPcx7fmcxC/dlSi8qo=
+github.com/onosproject/onos-api/go v0.7.109 h1:zePg1PNUmBGXqGwZcdUyXDWTgWWT/ZvPVWHsgwzoT+Y=
+github.com/onosproject/onos-api/go v0.7.109/go.mod h1:CaFf0659DTSP/8LAwuKv9p9/xFPcx7fmcxC/dlSi8qo=
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.48 h1:/yliwUJY4yh5W9UBu9BT92Bil60ICd3PAHbeo1+hBiA=
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2 v0.7.48/go.mod h1:TTJk5I4FN9dcbtspIqVCfSj8rjbYTEpk5euExafd9kI=
 github.com/onosproject/onos-lib-go v0.7.18/go.mod h1:yEu+qDh+z1G6b9clPAjDLQNnBll8TMl8o2sFDBzk/fI=
