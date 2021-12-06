@@ -21,7 +21,7 @@ test: build deps linters license_check_member_only
 
 jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
 jenkins-test: deps license_check_member_only linters
-	TEST_PACKAGES=github.com/onosproject/onos-kpimon/... ./../build-tools/build/jenkins/make-unit
+	TEST_PACKAGES=github.com/onosproject/onos-kpimon/... ./build/build-tools/build/jenkins/make-unit
 
 buflint: #@HELP run the "buf check lint" command on the proto files in 'api'
 	docker run -it -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
@@ -72,7 +72,7 @@ jenkins-publish: build-tools jenkins-tools # @HELP Jenkins calls this to publish
 	./build/build-tools/release-merge-commit
 
 bumponosdeps: # @HELP update "onosproject" go dependencies and push patch to git. Add a version to dependency to make it different to $VERSION
-	./../build-tools/bump-onos-deps ${VERSION}
+	./build/build-tools/bump-onos-deps ${VERSION}
 
 clean:: # @HELP remove all the build artifacts
 	rm -rf ./build/_output ./vendor ./cmd/onos-kpimon/onos-kpimon ./cmd/onos/onos
