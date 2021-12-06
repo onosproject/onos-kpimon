@@ -1,4 +1,5 @@
 build/_output/*
+build/build-tools
 **/_output
 *.DS_Store
 coverage.txt
