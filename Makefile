@@ -60,6 +60,21 @@ protos:
 		--entrypoint build/bin/compile-protos.sh \
 		onosproject/protoc-go:${ONOS_PROTOC_VERSION}
 
+helmit-kpm: integration-test-namespace # @HELP run MHO tests locally
+	helmit test -n test ./cmd/onos-kpimon-test --timeout 30m --no-teardown \
+			--secret sd-ran-username=${repo_user} --secret sd-ran-password=${repo_password} \
+			--suite kpm
+
+helmit-ha: integration-test-namespace # @HELP run MHO HA tests locally
+	helmit test -n test ./cmd/onos-kpimon-test --timeout 30m --no-teardown \
+			--secret sd-ran-username=${repo_user} --secret sd-ran-password=${repo_password} \
+			--suite ha
+
+integration-tests: helmit-kpm helmit-ha # @HELP run all MHO integration tests locally
+
+integration-test-namespace:
+	(kubectl delete ns test || exit 0) && kubectl create ns test
+
 onos-kpimon-docker: # @HELP build onos-kpimon Docker image
 onos-kpimon-docker:
 	@go mod vendor
