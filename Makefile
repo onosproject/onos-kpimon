@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2019-present Open Networking Foundation <info@opennetworking.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 export CGO_ENABLED=1
 export GO111MODULE=on
 
@@ -15,12 +19,12 @@ build-tools:=$(shell if [ ! -d "./build/build-tools" ]; then cd build && git clo
 include ./build/build-tools/make/onf-common.mk
 
 test: # @HELP run the unit tests and source code validation
-test: build deps linters license_check_member_only
+test: build deps linters license_check_apache
 	go test -race github.com/onosproject/onos-kpimon/pkg/...
 	go test -race github.com/onosproject/onos-kpimon/cmd/...
 
 jenkins-test:  # @HELP run the unit tests and source code validation producing a junit style report for Jenkins
-jenkins-test: deps license_check_member_only linters
+jenkins-test: deps license_check_apache linters
 	TEST_PACKAGES=github.com/onosproject/onos-kpimon/... ./build/build-tools/build/jenkins/make-unit
 
 buflint: #@HELP run the "buf check lint" command on the proto files in 'api'
@@ -70,9 +74,6 @@ publish: # @HELP publish version on github and dockerhub
 jenkins-publish: jenkins-tools # @HELP Jenkins calls this to publish artifacts
 	./build/bin/push-images
 	./build/build-tools/release-merge-commit
-
-bumponosdeps: # @HELP update "onosproject" go dependencies and push patch to git. Add a version to dependency to make it different to $VERSION
-	./build/build-tools/bump-onos-deps ${VERSION}
 
 clean:: # @HELP remove all the build artifacts
 	rm -rf ./build/_output ./vendor ./cmd/onos-kpimon/onos-kpimon ./cmd/onos/onos
