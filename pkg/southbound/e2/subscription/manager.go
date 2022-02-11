@@ -144,6 +144,9 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 	}
 
 	for _, e2NodeID := range e2NodeIDs {
+		if !m.rnibClient.HasKPMRanFunction(ctx, e2NodeID, kpmServiceModelOID) {
+			continue
+		}
 		go func(e2NodeID topoapi.ID) {
 			err := m.newSubscription(ctx, e2NodeID)
 			if err != nil {
