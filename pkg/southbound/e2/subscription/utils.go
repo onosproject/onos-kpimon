@@ -12,13 +12,13 @@ import (
 
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
-	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/pdubuilder"
-	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
+	"github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go/pdubuilder"
+	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go/v2/e2sm-kpm-v2-go"
 	"google.golang.org/protobuf/proto"
 )
 
 // createSubscriptionActions creates subscription actions
-func (m *Manager) createSubscriptionActions(ctx context.Context, reportStyle *topoapi.KPMReportStyle, cells []*topoapi.E2Cell, granularity uint32) ([]e2api.Action, error) {
+func (m *Manager) createSubscriptionActions(ctx context.Context, reportStyle *topoapi.KPMReportStyle, cells []*topoapi.E2Cell, granularity int64) ([]e2api.Action, error) {
 	actions := make([]e2api.Action, 0)
 
 	sort.Slice(cells, func(i, j int) bool {
@@ -36,10 +36,7 @@ func (m *Manager) createSubscriptionActions(ctx context.Context, reportStyle *to
 				return nil, err
 			}
 
-			meanInfoItem, err := pdubuilder.CreateMeasurementInfoItem(measTypeMeasName, nil)
-			if err != nil {
-				return nil, err
-			}
+			meanInfoItem := pdubuilder.CreateMeasurementInfoItem(measTypeMeasName)
 			measInfoList.Value = append(measInfoList.Value, meanInfoItem)
 		}
 		subID := int64(index + 1)
