@@ -10,7 +10,7 @@ import (
 
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 
-	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
+	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go/v2/e2sm-kpm-v2-go"
 )
 
 func toUnixNano(timeStamp int64) int64 {

@@ -6,6 +6,7 @@ package monitoring
 
 import (
 	"context"
+
 	"github.com/onosproject/onos-kpimon/pkg/rnib"
 
 	e2api "github.com/onosproject/onos-api/go/onos/e2t/e2/v1beta1"
@@ -17,7 +18,7 @@ import (
 
 	measurmentStore "github.com/onosproject/onos-kpimon/pkg/store/measurements"
 
-	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2/v2/e2sm-kpm-v2"
+	e2smkpmv2 "github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go/v2/e2sm-kpm-v2-go"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -25,7 +26,7 @@ import (
 	"github.com/onosproject/onos-kpimon/pkg/broker"
 )
 
-var log = logging.GetLogger("monitoring")
+var log = logging.GetLogger()
 
 // NewMonitor creates a new indication monitor
 func NewMonitor(opts ...Option) *Monitor {
@@ -73,10 +74,12 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		return err
 	}
 
-	log.Debugf("Received indication header format 1 %v:", indHeader.GetIndicationHeaderFormat1())
-	log.Debugf("Received indication message format 1: %v", indMessage.GetIndicationMessageFormat1())
+	indHdrFormat1 := indHeader.GetIndicationHeaderFormats().GetIndicationHeaderFormat1()
+	indMsgFormat1 := indMessage.GetIndicationMessageFormats().GetIndicationMessageFormat1()
+	log.Debugf("Received indication header format 1 %v:", indHdrFormat1)
+	log.Debugf("Received indication message format 1: %v", indMsgFormat1)
 
-	startTime := getTimeStampFromHeader(indHeader.GetIndicationHeaderFormat1())
+	startTime := getTimeStampFromHeader(indHdrFormat1)
 	startTimeUnixNano := toUnixNano(int64(startTime))
 
 	granularity, err := m.appConfig.GetGranularityPeriod()
@@ -86,10 +89,10 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 	}
 
 	var cid string
-	if indMessage.GetIndicationMessageFormat1().GetCellObjId() == nil {
+	if indMsgFormat1.GetCellObjId() == nil {
 		// Use the actions store to find cell object Id based on sub ID in action definition
 		key := actions.NewKey(actions.SubscriptionID{
-			SubID: indMessage.GetIndicationMessageFormat1().GetSubscriptId().GetValue(),
+			SubID: indMsgFormat1.GetSubscriptId().GetValue(),
 		})
 
 		response, err := m.actionStore.Get(ctx, key)
@@ -101,11 +104,11 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 		cid = actionDefinition.GetCellObjId().GetValue()
 
 	} else {
-		cid = indMessage.GetIndicationMessageFormat1().GetCellObjId().Value
+		cid = indMsgFormat1.GetCellObjId().Value
 	}
 
-	measDataItems := indMessage.GetIndicationMessageFormat1().GetMeasData().GetValue()
-	measInfoList := indMessage.GetIndicationMessageFormat1().GetMeasInfoList().GetValue()
+	measDataItems := indMsgFormat1.GetMeasData().GetValue()
+	measInfoList := indMsgFormat1.GetMeasInfoList().GetValue()
 
 	measItems := make([]measurmentStore.MeasurementItem, 0)
 	for i, measDataItem := range measDataItems {

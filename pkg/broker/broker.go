@@ -15,7 +15,7 @@ import (
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
 )
 
-var log = logging.GetLogger("broker")
+var log = logging.GetLogger()
 
 // NewBroker creates a new subscription stream broker
 func NewBroker() Broker {

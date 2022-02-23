@@ -32,7 +32,7 @@ import (
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
 )
 
-var log = logging.GetLogger("e2", "subscription", "manager")
+var log = logging.GetLogger()
 
 const (
 	kpmServiceModelOID = "1.3.6.1.4.1.53148.1.2.2.2"
@@ -218,7 +218,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 		return err
 	}
 	log.Debugf("Report period: %d", reportPeriod)
-	eventTriggerData, err := subutils.CreateEventTriggerData(uint32(reportPeriod))
+	eventTriggerData, err := subutils.CreateEventTriggerData(int64(reportPeriod))
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -233,7 +233,7 @@ func (m *Manager) createSubscription(ctx context.Context, e2nodeID topoapi.ID) e
 	log.Debugf("Report styles:%v", reportStyles)
 	// TODO we should check if for each report style a subscription should be created or for all of them
 	for _, reportStyle := range reportStyles {
-		actions, err := m.createSubscriptionActions(ctx, reportStyle, cells, uint32(granularityPeriod))
+		actions, err := m.createSubscriptionActions(ctx, reportStyle, cells, int64(granularityPeriod))
 		if err != nil {
 			log.Warn(err)
 			return err

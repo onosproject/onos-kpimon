@@ -12,7 +12,7 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 )
 
-var log = logging.GetLogger("main")
+var log = logging.GetLogger()
 
 func main() {
 	caPath := flag.String("caPath", "", "path to CA certificate")
