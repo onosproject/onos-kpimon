@@ -32,7 +32,7 @@ import (
 	e2client "github.com/onosproject/onos-ric-sdk-go/pkg/e2/v1beta1"
 )
 
-var log = logging.GetLogger("e2", "subscription", "manager")
+var log = logging.GetLogger()
 
 const (
 	kpmServiceModelOID = "1.3.6.1.4.1.53148.1.2.2.2"

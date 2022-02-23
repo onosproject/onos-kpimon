@@ -20,7 +20,7 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 )
 
-var log = logging.GetLogger("store", "measurements")
+var log = logging.GetLogger()
 
 // Store kpm metrics store interface
 type Store interface {
