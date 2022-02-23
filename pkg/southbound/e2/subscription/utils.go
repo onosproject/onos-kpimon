@@ -36,7 +36,10 @@ func (m *Manager) createSubscriptionActions(ctx context.Context, reportStyle *to
 				return nil, err
 			}
 
-			meanInfoItem := pdubuilder.CreateMeasurementInfoItem(measTypeMeasName)
+			meanInfoItem, err := pdubuilder.CreateMeasurementInfoItem(measTypeMeasName)
+			if err != nil {
+				return nil, err
+			}
 			measInfoList.Value = append(measInfoList.Value, meanInfoItem)
 		}
 		subID := int64(index + 1)

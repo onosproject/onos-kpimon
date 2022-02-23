@@ -16,11 +16,10 @@ func CreateEventTriggerData(rtPeriod int64) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	// TODO enable it when it is available
-	/*err = e2SmKpmEventTriggerDefinition.Validate()
+	err = e2SmKpmEventTriggerDefinition.Validate()
 	if err != nil {
 		return []byte{}, err
-	}*/
+	}
 
 	protoBytes, err := proto.Marshal(e2SmKpmEventTriggerDefinition)
 	if err != nil {
