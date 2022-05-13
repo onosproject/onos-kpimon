@@ -40,14 +40,10 @@ protos:
 		onosproject/protoc-go:${ONOS_PROTOC_VERSION}
 
 helmit-kpm: integration-test-namespace # @HELP run MHO tests locally
-	helmit test -n test ./cmd/onos-kpimon-test --timeout 30m --no-teardown \
-			--secret sd-ran-username=${repo_user} --secret sd-ran-password=${repo_password} \
-			--suite kpm
+	helmit test -n test ./cmd/onos-kpimon-test --timeout 30m --no-teardown --suite kpm
 
 helmit-ha: integration-test-namespace # @HELP run MHO HA tests locally
-	helmit test -n test ./cmd/onos-kpimon-test --timeout 30m --no-teardown \
-			--secret sd-ran-username=${repo_user} --secret sd-ran-password=${repo_password} \
-			--suite ha
+	helmit test -n test ./cmd/onos-kpimon-test --timeout 30m --no-teardown --suite ha
 
 integration-tests: helmit-kpm helmit-ha # @HELP run all MHO integration tests locally
 
