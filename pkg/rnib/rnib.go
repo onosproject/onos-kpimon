@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2022-present Intel Corporation
 // SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -185,7 +186,7 @@ func getControlRelationFilter() *topoapi.Filters {
 		KindFilter: &topoapi.Filter{
 			Filter: &topoapi.Filter_Equal_{
 				Equal_: &topoapi.EqualFilter{
-					Value: topoapi.CONTROLS,
+					Value: topoapi.E2NODE,
 				},
 			},
 		},

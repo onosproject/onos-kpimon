@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2022-present Intel Corporation
 // SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -314,8 +315,7 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 			}()
 
 		} else if topoEvent.Type == topoapi.EventType_REMOVED {
-			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
-			e2NodeID := relation.Relation.TgtEntityID
+			e2NodeID := topoEvent.Object.ID
 			if !m.rnibClient.HasKPMRanFunction(ctx, e2NodeID, kpmServiceModelOID) {
 				continue
 			}
