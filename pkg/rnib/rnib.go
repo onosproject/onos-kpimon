@@ -122,15 +122,14 @@ func (c *Client) GetCellTopoID(ctx context.Context, coi string, nodeID topoapi.I
 
 // E2NodeIDs lists all of connected E2 nodes
 func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
-	objects, err := c.client.List(ctx, toposdk.WithListFilters(getControlRelationFilter()))
+	objects, err := c.client.List(ctx, toposdk.WithListFilters(getE2NodeFilter()))
 	if err != nil {
 		return nil, err
 	}
 
 	e2NodeIDs := make([]topoapi.ID, len(objects))
 	for _, object := range objects {
-		relation := object.GetRelation()
-		e2NodeID := relation.TgtEntityID
+		e2NodeID := object.ID
 		e2NodeIDs = append(e2NodeIDs, e2NodeID)
 	}
 
@@ -181,7 +180,7 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 	return cells, nil
 }
 
-func getControlRelationFilter() *topoapi.Filters {
+func getE2NodeFilter() *topoapi.Filters {
 	controlRelationFilter := &topoapi.Filters{
 		KindFilter: &topoapi.Filter{
 			Filter: &topoapi.Filter_Equal_{
@@ -196,7 +195,7 @@ func getControlRelationFilter() *topoapi.Filters {
 
 // WatchE2Connections watch e2 node connection changes
 func (c *Client) WatchE2Connections(ctx context.Context, ch chan topoapi.Event) error {
-	err := c.client.Watch(ctx, ch, toposdk.WithWatchFilters(getControlRelationFilter()))
+	err := c.client.Watch(ctx, ch, toposdk.WithWatchFilters(getE2NodeFilter()))
 	if err != nil {
 		return err
 	}
