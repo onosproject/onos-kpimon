@@ -301,8 +301,7 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 		log.Debugf("Received topo event: %v", topoEvent)
 
 		if topoEvent.Type == topoapi.EventType_ADDED || topoEvent.Type == topoapi.EventType_NONE {
-			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
-			e2NodeID := relation.Relation.TgtEntityID
+			e2NodeID := topoEvent.Object.ID
 			if !m.rnibClient.HasKPMRanFunction(ctx, e2NodeID, kpmServiceModelOID) {
 				continue
 			}
