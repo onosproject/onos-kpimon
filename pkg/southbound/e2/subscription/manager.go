@@ -138,7 +138,7 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 
 	}
 	// Gets all of connected E2 nodes and creates new subscriptions based on new report interval
-	e2NodeIDs, err := m.rnibClient.E2NodeIDs(ctx)
+	e2NodeIDs, err := m.rnibClient.E2NodeIDs(ctx, kpmServiceModelOID)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -317,7 +317,8 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 			}()
 
 		} else if topoEvent.Type == topoapi.EventType_REMOVED {
-			e2NodeID := topoEvent.Object.ID
+			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
+			e2NodeID := relation.Relation.TgtEntityID
 			if !m.rnibClient.HasKPMRanFunction(ctx, e2NodeID, kpmServiceModelOID) {
 				continue
 			}

@@ -24,7 +24,7 @@ type TopoClient interface {
 	WatchE2Connections(ctx context.Context, ch chan topoapi.Event) error
 	GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error)
 	GetE2NodeAspects(ctx context.Context, nodeID topoapi.ID) (*topoapi.E2Node, error)
-	E2NodeIDs(ctx context.Context) ([]topoapi.ID, error)
+	E2NodeIDs(ctx context.Context, oid string) ([]topoapi.ID, error)
 }
 
 // NewClient creates a new topo SDK client
@@ -121,7 +121,7 @@ func (c *Client) GetCellTopoID(ctx context.Context, coi string, nodeID topoapi.I
 }
 
 // E2NodeIDs lists all of connected E2 nodes
-func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
+func (c *Client) E2NodeIDs(ctx context.Context, oid string) ([]topoapi.ID, error) {
 	objects, err := c.client.List(ctx, toposdk.WithListFilters(getControlRelationFilter()))
 	if err != nil {
 		return nil, err
@@ -129,8 +129,11 @@ func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
 
 	e2NodeIDs := make([]topoapi.ID, len(objects))
 	for _, object := range objects {
-		e2NodeID := object.ID
-		e2NodeIDs = append(e2NodeIDs, e2NodeID)
+		relation := object.Obj.(*topoapi.Object_Relation)
+		e2NodeID := relation.Relation.TgtEntityID
+		if c.HasKPMRanFunction(ctx, e2NodeID, oid) {
+			e2NodeIDs = append(e2NodeIDs, e2NodeID)
+		}
 	}
 
 	return e2NodeIDs, nil
