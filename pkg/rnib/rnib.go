@@ -122,7 +122,7 @@ func (c *Client) GetCellTopoID(ctx context.Context, coi string, nodeID topoapi.I
 
 // E2NodeIDs lists all of connected E2 nodes
 func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
-	objects, err := c.client.List(ctx, toposdk.WithListFilters(getE2NodeFilter()))
+	objects, err := c.client.List(ctx, toposdk.WithListFilters(getControlRelationFilter()))
 	if err != nil {
 		return nil, err
 	}
@@ -178,22 +178,22 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 	return cells, nil
 }
 
-func getE2NodeFilter() *topoapi.Filters {
-	e2NodeFilter := &topoapi.Filters{
+func getControlRelationFilter() *topoapi.Filters {
+	filter := &topoapi.Filters{
 		KindFilter: &topoapi.Filter{
 			Filter: &topoapi.Filter_Equal_{
 				Equal_: &topoapi.EqualFilter{
-					Value: topoapi.E2NODE,
+					Value: topoapi.CONTROLS,
 				},
 			},
 		},
 	}
-	return e2NodeFilter
+	return filter
 }
 
 // WatchE2Connections watch e2 node connection changes
 func (c *Client) WatchE2Connections(ctx context.Context, ch chan topoapi.Event) error {
-	err := c.client.Watch(ctx, ch, toposdk.WithWatchFilters(getE2NodeFilter()))
+	err := c.client.Watch(ctx, ch, toposdk.WithWatchFilters(getControlRelationFilter()))
 	if err != nil {
 		return err
 	}
