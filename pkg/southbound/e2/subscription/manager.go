@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2022-present Intel Corporation
 // SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -137,7 +138,7 @@ func (m *Manager) watchConfigChanges(ctx context.Context) error {
 
 	}
 	// Gets all of connected E2 nodes and creates new subscriptions based on new report interval
-	e2NodeIDs, err := m.rnibClient.E2NodeIDs(ctx)
+	e2NodeIDs, err := m.rnibClient.E2NodeIDs(ctx, kpmServiceModelOID)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -303,10 +304,12 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)
 			e2NodeID := relation.Relation.TgtEntityID
 			if !m.rnibClient.HasKPMRanFunction(ctx, e2NodeID, kpmServiceModelOID) {
+				log.Debugf("Received topo event does not have KPM RAN function - %v", topoEvent)
 				continue
 			}
 
 			go func() {
+				log.Debugf("start creating subscriptions %v", topoEvent)
 				err := m.newSubscription(ctx, e2NodeID)
 				if err != nil {
 					log.Warn(err)

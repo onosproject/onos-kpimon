@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2022-present Intel Corporation
 // SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -23,7 +24,7 @@ type TopoClient interface {
 	WatchE2Connections(ctx context.Context, ch chan topoapi.Event) error
 	GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2Cell, error)
 	GetE2NodeAspects(ctx context.Context, nodeID topoapi.ID) (*topoapi.E2Node, error)
-	E2NodeIDs(ctx context.Context) ([]topoapi.ID, error)
+	E2NodeIDs(ctx context.Context, oid string) ([]topoapi.ID, error)
 }
 
 // NewClient creates a new topo SDK client
@@ -120,7 +121,7 @@ func (c *Client) GetCellTopoID(ctx context.Context, coi string, nodeID topoapi.I
 }
 
 // E2NodeIDs lists all of connected E2 nodes
-func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
+func (c *Client) E2NodeIDs(ctx context.Context, oid string) ([]topoapi.ID, error) {
 	objects, err := c.client.List(ctx, toposdk.WithListFilters(getControlRelationFilter()))
 	if err != nil {
 		return nil, err
@@ -128,9 +129,11 @@ func (c *Client) E2NodeIDs(ctx context.Context) ([]topoapi.ID, error) {
 
 	e2NodeIDs := make([]topoapi.ID, len(objects))
 	for _, object := range objects {
-		relation := object.GetRelation()
-		e2NodeID := relation.TgtEntityID
-		e2NodeIDs = append(e2NodeIDs, e2NodeID)
+		relation := object.Obj.(*topoapi.Object_Relation)
+		e2NodeID := relation.Relation.TgtEntityID
+		if c.HasKPMRanFunction(ctx, e2NodeID, oid) {
+			e2NodeIDs = append(e2NodeIDs, e2NodeID)
+		}
 	}
 
 	return e2NodeIDs, nil
@@ -154,10 +157,8 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 		RelationFilter: &topoapi.RelationFilter{
 			SrcId:        string(nodeID),
 			RelationKind: topoapi.CONTAINS,
-			TargetKind:   topoapi.E2CELL,
-		},
+			TargetKind:   ""},
 	}
-
 	objects, err := c.client.List(ctx, toposdk.WithListFilters(filter))
 	if err != nil {
 		return nil, err
@@ -181,7 +182,7 @@ func (c *Client) GetCells(ctx context.Context, nodeID topoapi.ID) ([]*topoapi.E2
 }
 
 func getControlRelationFilter() *topoapi.Filters {
-	controlRelationFilter := &topoapi.Filters{
+	filter := &topoapi.Filters{
 		KindFilter: &topoapi.Filter{
 			Filter: &topoapi.Filter_Equal_{
 				Equal_: &topoapi.EqualFilter{
@@ -190,7 +191,7 @@ func getControlRelationFilter() *topoapi.Filters {
 			},
 		},
 	}
-	return controlRelationFilter
+	return filter
 }
 
 // WatchE2Connections watch e2 node connection changes
