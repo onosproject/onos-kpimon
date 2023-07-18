@@ -54,7 +54,7 @@ func NewStore() Store {
 	}
 }
 
-func (s *store) Entries(ctx context.Context, ch chan<- *Entry) error {
+func (s *store) Entries(_ context.Context, ch chan<- *Entry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -71,7 +71,7 @@ func (s *store) Entries(ctx context.Context, ch chan<- *Entry) error {
 	return nil
 }
 
-func (s *store) Delete(ctx context.Context, key Key) error {
+func (s *store) Delete(_ context.Context, key Key) error {
 	// TODO check the key and make sure it is not empty
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -80,7 +80,7 @@ func (s *store) Delete(ctx context.Context, key Key) error {
 
 }
 
-func (s *store) Put(ctx context.Context, key Key, value interface{}) (*Entry, error) {
+func (s *store) Put(_ context.Context, key Key, value interface{}) (*Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	entry := &Entry{
@@ -97,7 +97,7 @@ func (s *store) Put(ctx context.Context, key Key, value interface{}) (*Entry, er
 
 }
 
-func (s *store) Get(ctx context.Context, key Key) (*Entry, error) {
+func (s *store) Get(_ context.Context, key Key) (*Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if v, ok := s.measurements[key]; ok {
