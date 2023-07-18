@@ -36,7 +36,7 @@ func NewStore() Store {
 	}
 }
 
-func (s *store) Put(ctx context.Context, key Key, value interface{}) (*Entry, error) {
+func (s *store) Put(_ context.Context, key Key, value interface{}) (*Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	entry := &Entry{
@@ -47,7 +47,7 @@ func (s *store) Put(ctx context.Context, key Key, value interface{}) (*Entry, er
 	return entry, nil
 }
 
-func (s *store) Get(ctx context.Context, key Key) (*Entry, error) {
+func (s *store) Get(_ context.Context, key Key) (*Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if v, ok := s.actions[key]; ok {

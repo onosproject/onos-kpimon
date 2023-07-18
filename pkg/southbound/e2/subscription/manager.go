@@ -308,13 +308,13 @@ func (m *Manager) watchE2Connections(ctx context.Context) error {
 				continue
 			}
 
-			go func() {
-				log.Debugf("start creating subscriptions %v", topoEvent)
+			go func(t topoapi.Event) {
+				log.Debugf("start creating subscriptions %v", t)
 				err := m.newSubscription(ctx, e2NodeID)
 				if err != nil {
 					log.Warn(err)
 				}
-			}()
+			}(topoEvent)
 
 		} else if topoEvent.Type == topoapi.EventType_REMOVED {
 			relation := topoEvent.Object.Obj.(*topoapi.Object_Relation)

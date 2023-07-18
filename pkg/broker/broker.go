@@ -67,7 +67,7 @@ func (b *streamBroker) ChannelIDs() []e2api.ChannelID {
 	return channelIDs
 }
 
-func (b *streamBroker) OpenReader(ctx context.Context, node e2client.Node, subName string, channelID e2api.ChannelID, subSpec e2api.SubscriptionSpec) (StreamReader, error) {
+func (b *streamBroker) OpenReader(_ context.Context, node e2client.Node, subName string, channelID e2api.ChannelID, subSpec e2api.SubscriptionSpec) (StreamReader, error) {
 	b.mu.RLock()
 	stream, ok := b.subs[channelID]
 	b.mu.RUnlock()
