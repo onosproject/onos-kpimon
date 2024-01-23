@@ -1,0 +1,102 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 Intel Corporation
+
+name: Master workflow
+on:
+  push:
+    branches:
+      - master
+      - GHA-integration
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Build
+        run: |
+          GOPRIVATE="github.com/onosproject/*" go build -o build/_output/onos-kpimon ./cmd/onos-kpimon
+
+  buflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: buflint
+        env:
+          BUF_VERSION: 0.27.1
+        run: |
+          docker run \
+            -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
+            -w /go/src/github.com/onosproject/onos-kpimon/api \
+            bufbuild/buf:${BUF_VERSION} check lint
+
+  protos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: buflint
+        env:
+          ONOS_PROTOC_VERSION: v1.0.2
+        run: |
+          docker run \
+            -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
+            -w /go/src/github.com/onosproject/onos-kpimon \
+            --entrypoint build/bin/compile-protos.sh \
+            onosproject/protoc-go:${ONOS_PROTOC_VERSION}
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Unit tests
+        run: |
+          make integration-tests
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Unit tests
+        run: |
+          go test -race github.com/onosproject/onos-kpimon/pkg/...
+          go test -race github.com/onosproject/onos-kpimon/cmd/...
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Build Docker image
+        run: |
+          go mod vendor
+          docker build . -f build/onos-kpimon/Dockerfile \
+                  -t onosproject/onos-kpimon:latest
+          rm -rf vendor
+
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: reuse lint
+        uses: fsfe/reuse-action@v2
+
+  fossa-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: FOSSA scan
+        uses: fossa-contrib/fossa-action@v3
+        with:
+          fossa-api-key: 9dc8fa92e3dd565687317beb87b56d89
