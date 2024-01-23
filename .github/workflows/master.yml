@@ -33,7 +33,7 @@ jobs:
           docker run \
             -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
             -w /go/src/github.com/onosproject/onos-kpimon/api \
-            bufbuild/buf:${BUF_VERSION} check lint
+            bufbuild/buf:${BUF_VERSION} lint
 
   protos:
     runs-on: ubuntu-latest
