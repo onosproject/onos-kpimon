@@ -29,9 +29,6 @@ jobs:
         env:
           BUF_VERSION: 0.27.1
         run: |
-          cd ..
-          git clone https://github.com/onosproject/onos-kpimon.git
-          cd onos-kpimon
           docker run \
             -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
             -w /go/src/github.com/onosproject/onos-kpimon/api \
@@ -45,9 +42,6 @@ jobs:
         env:
           ONOS_PROTOC_VERSION: v1.0.2
         run: |
-          cd ..
-          git clone https://github.com/onosproject/onos-kpimon.git
-          cd onos-kpimon
           docker run \
             -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
             -w /go/src/github.com/onosproject/onos-kpimon \
