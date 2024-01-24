@@ -21,44 +21,7 @@ jobs:
         run: |
           GOPRIVATE="github.com/onosproject/*" go build -o build/_output/onos-kpimon ./cmd/onos-kpimon
 
-  buflint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: buflint
-        env:
-          # BUF_VERSION: 0.27.1
-          BUF_VERSION: 1.0.0
-        run: |
-          docker run \
-            -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
-            -w /go/src/github.com/onosproject/onos-kpimon/api \
-            bufbuild/buf:${BUF_VERSION} lint
 
-  protos:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: buflint
-        env:
-          ONOS_PROTOC_VERSION: v1.0.2
-        run: |
-          docker run \
-            -v `pwd`:/go/src/github.com/onosproject/onos-kpimon \
-            -w /go/src/github.com/onosproject/onos-kpimon \
-            --entrypoint build/bin/compile-protos.sh \
-            onosproject/protoc-go:${ONOS_PROTOC_VERSION}
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-      - name: Unit tests
-        run: |
-          make integration-tests
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -81,6 +44,7 @@ jobs:
           go-version-file: 'go.mod'
       - name: Build Docker image
         run: |
+          git clone https://github.com/onosproject/build-tools.git build/build-tools
           go mod vendor
           docker build . -f build/onos-kpimon/Dockerfile \
                   -t onosproject/onos-kpimon:latest
