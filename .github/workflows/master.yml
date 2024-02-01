@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - master
+      - GHA-integration
   pull_request:
 
 jobs:
@@ -17,8 +18,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Build
-        run: |
-          GOPRIVATE="github.com/onosproject/*" go build -o build/_output/onos-kpimon ./cmd/onos-kpimon
+        run: go build -o build/_output/onos-kpimon ./cmd/onos-kpimon
 
   lint:
     runs-on: ubuntu-latest
