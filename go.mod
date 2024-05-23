@@ -6,14 +6,14 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
 	github.com/onosproject/helmit v0.6.19
-	github.com/onosproject/onos-api/go v0.10.31
+	github.com/onosproject/onos-api/go v0.10.32
 	github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go v0.8.43
 	github.com/onosproject/onos-lib-go v0.10.24
 	github.com/onosproject/onos-ric-sdk-go v0.8.12
-	github.com/onosproject/onos-test v0.6.5
-	github.com/stretchr/testify v1.8.2
+	github.com/onosproject/onos-test v0.6.6
+	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.54.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.34.1
 )
 
 require (
