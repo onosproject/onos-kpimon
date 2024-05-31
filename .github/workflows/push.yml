@@ -152,7 +152,7 @@ jobs:
           curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GH_ONOS_PAT }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/${{ github.repository }}/releases \
             -d '{
@@ -211,7 +211,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GH_ONOS_PAT }}
           commit-message: Update version
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
@@ -224,16 +224,16 @@ jobs:
           add-paths: |
             VERSION
 
-  branch-release:
-    runs-on: ubuntu-latest
-    needs: tag-github
-    if: (needs.tag-github.outputs.changed == 'true') && (needs.tag-github.outputs.release_branch == 'true')
-    env:
-      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: peterjgrainger/action-create-branch@v3.0.0
-        with:
-          branch: "rel-${{ needs.tag-github.outputs.version_branch }}"
-          sha: '${{ github.event.pull_request.head.sha }}'
+#  branch-release:
+#    runs-on: ubuntu-latest
+#    needs: tag-github
+#    if: (needs.tag-github.outputs.changed == 'true') && (needs.tag-github.outputs.release_branch == 'true')
+#    env:
+#      GITHUB_TOKEN: ${{ secrets.GH_ONOS_PAT }}
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - uses: peterjgrainger/action-create-branch@v3.0.0
+#        with:
+#          branch: "rel-${{ needs.tag-github.outputs.version_branch }}"
+#          sha: '${{ github.event.pull_request.head.sha }}'
