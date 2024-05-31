@@ -104,8 +104,6 @@ jobs:
       version_branch: ${{ steps.version-change.outputs.version_branch }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Get changes
         id: version-file
