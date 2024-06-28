@@ -14,7 +14,7 @@ COPY cmd/ /go/src/github.com/onosproject/onos-kpimon/cmd/
 COPY pkg/ /go/src/github.com/onosproject/onos-kpimon/pkg/
 COPY vendor/ /go/src/github.com/onosproject/onos-kpimon/vendor/
 COPY api/ /go/src/github.com/onosproject/onos-kpimon/api
-COPY build/build-tools /go/src/github.com/onosproject/onos-kpimon/build/build-tools
+COPY build/ /go/src/github.com/onosproject/onos-kpimon/build/
 
 RUN cd /go/src/github.com/onosproject/onos-kpimon && GOFLAGS=-mod=vendor make ${ONOS_MAKE_TARGET}
 
