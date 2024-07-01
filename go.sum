@@ -990,8 +990,8 @@ github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6
 github.com/onosproject/helmit v0.6.8/go.mod h1:EorNGSNGWojXGxBEuiNmPScae+R2C5WYfg/13gKEPLw=
 github.com/onosproject/helmit v0.6.19 h1:2Il7qhJhUjYFdweDaOzgPanUArDNGRs8SaLV3tx0aGQ=
 github.com/onosproject/helmit v0.6.19/go.mod h1:4LUwMtLcV0njiCEcAoVdzoiRfit+04z4Yn7z8lXSuMk=
-github.com/onosproject/onos-api/go v0.10.31 h1:s7e90O7xOo7euimKMnOYJ7eoI/sJuN+o7L5Lzele8JQ=
-github.com/onosproject/onos-api/go v0.10.31/go.mod h1:7auteo9ZJ4ovOaPeGeFUuA4WVORMct4XssyO+vJ2Mx0=
+github.com/onosproject/onos-api/go v0.10.33 h1:c7/6Z/+Ny5kjs5mswThR/b+f0i2vEuXCKDrGt81JW3A=
+github.com/onosproject/onos-api/go v0.10.33/go.mod h1:7auteo9ZJ4ovOaPeGeFUuA4WVORMct4XssyO+vJ2Mx0=
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go v0.8.43 h1:NctAVASIgHiOvBZUB6c8CDfRje21xmcq4KBskFyEz7M=
 github.com/onosproject/onos-e2-sm/servicemodels/e2sm_kpm_v2_go v0.8.43/go.mod h1:td6ssHLg+qMNN2A9W2x7r/M6vzDqCR9yzl9WCyR5RuY=
 github.com/onosproject/onos-lib-go v0.8.1/go.mod h1:1klcUPfLoXPVu4fzM/sYi1V3Pggm2NRbY2fTzG2W1HY=
