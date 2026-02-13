@@ -8,6 +8,11 @@ export GO111MODULE=on
 .PHONY: build
 
 ONOS_KPIMON_VERSION ?= latest
+DOCKER_TAG          ?= ${ONOS_KPIMON_VERSION}
+DOCKER_REPOSITORY   ?= onosproject/
+DOCKER_REGISTRY     ?= ""
+DOCKER_IMAGENAME    := ${DOCKER_REGISTRY}${DOCKER_REPOSITORY}onos-kpimon:${DOCKER_TAG}
+
 ONOS_PROTOC_VERSION := v0.6.6
 BUF_VERSION := 0.27.1
 
@@ -27,14 +32,14 @@ test: build lint license
 docker-build-onos-kpimon: # @HELP build onos-kpimon Docker image
 	@go mod vendor
 	docker build . -f build/onos-kpimon/Dockerfile \
-		-t onosproject/onos-kpimon:${ONOS_KPIMON_VERSION}
+		-t ${DOCKER_IMAGENAME}
 	@rm -rf vendor
 
 docker-build: # @HELP build all Docker images
 docker-build: build docker-build-onos-kpimon
 
 docker-push-onos-kpimon: # @HELP push onos-kpimon Docker image
-	docker push onosproject/onos-kpimon:${ONOS_KPIMON_VERSION}
+	docker push ${DOCKER_IMAGENAME}
 
 docker-push: # @HELP push docker images
 docker-push: docker-push-onos-kpimon
