@@ -6,6 +6,7 @@ package monitoring
 
 import (
 	"context"
+	"io"
 
 	"github.com/onosproject/onos-kpimon/pkg/rnib"
 
@@ -130,25 +131,27 @@ func (m *Monitor) processIndicationFormat1(ctx context.Context, indication e2api
 			}
 
 			timeStamp := uint64(startTimeUnixNano) + granularity*uint64(1000000)*uint64(i)
-			if measInfoList[j].GetMeasType().GetMeasName().GetValue() != "" {
-				measName := measInfoList[j].GetMeasType().GetMeasName().GetValue()
-				measRecord := measurmentStore.MeasurementRecord{
-					Timestamp:        timeStamp,
-					MeasurementName:  measName,
-					MeasurementValue: measValue,
+			if len(measInfoList) > j {
+				if measInfoList[j].GetMeasType().GetMeasName().GetValue() != "" {
+					measName := measInfoList[j].GetMeasType().GetMeasName().GetValue()
+					measRecord := measurmentStore.MeasurementRecord{
+						Timestamp:        timeStamp,
+						MeasurementName:  measName,
+						MeasurementValue: measValue,
+					}
+					measRecords = append(measRecords, measRecord)
+				} else if measInfoList[j].GetMeasType().GetMeasId() != nil {
+					measID := measInfoList[j].GetMeasType().GetMeasId().String()
+					log.Debugf("Received meas ID in indication message:", measID)
+					log.Debugf("List of measurements:", measurements)
+					measName := getMeasurementName(measID, measurements)
+					measRecord := measurmentStore.MeasurementRecord{
+						Timestamp:        timeStamp,
+						MeasurementName:  measName,
+						MeasurementValue: measValue,
+					}
+					measRecords = append(measRecords, measRecord)
 				}
-				measRecords = append(measRecords, measRecord)
-			} else if measInfoList[j].GetMeasType().GetMeasId() != nil {
-				measID := measInfoList[j].GetMeasType().GetMeasId().String()
-				log.Debugf("Received meas ID in indication message:", measID)
-				log.Debugf("List of measurements:", measurements)
-				measName := getMeasurementName(measID, measurements)
-				measRecord := measurmentStore.MeasurementRecord{
-					Timestamp:        timeStamp,
-					MeasurementName:  measName,
-					MeasurementValue: measValue,
-				}
-				measRecords = append(measRecords, measRecord)
 			}
 		}
 
@@ -195,24 +198,21 @@ func (m *Monitor) processIndication(ctx context.Context, indication e2api.Indica
 
 // Start start monitoring of indication messages for a given subscription ID
 func (m *Monitor) Start(ctx context.Context) error {
-	errCh := make(chan error)
 	go func() {
 		for {
 			indMsg, err := m.streamReader.Recv(ctx)
 			if err != nil {
-				errCh <- err
+				log.Warn(err)
+				if err == context.Canceled || err == context.DeadlineExceeded ||
+					err == io.EOF {
+					return
+				}
 			}
-			err = m.processIndication(ctx, indMsg, m.measurements, m.nodeID)
-			if err != nil {
-				errCh <- err
-			}
+			_ = m.processIndication(ctx, indMsg, m.measurements, m.nodeID)
+			// error already logged in processIndication
 		}
 	}()
 
-	select {
-	case err := <-errCh:
-		return err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	<-ctx.Done()
+	return ctx.Err()
 }
